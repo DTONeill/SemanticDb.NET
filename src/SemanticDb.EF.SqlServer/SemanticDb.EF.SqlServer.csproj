@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Description>SQL Server 2025 vector search provider for SemanticDb — uses native VECTOR_DISTANCE for fast similarity search directly in SQL Server.</Description>
+    <PackageTags>rag;semantic-db;embeddings;vector-search;ai;ef-core;sql-server;vector-distance</PackageTags>
+    <Authors>David O'Neill</Authors>
+    <Copyright>Copyright © David O'Neill 2026</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RootNamespace>SemanticDb.EF.SqlServer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.26"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SemanticDb.EF\SemanticDb.EF.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+</Project>

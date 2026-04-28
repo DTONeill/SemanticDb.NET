@@ -1,0 +1,157 @@
+﻿using Microsoft.EntityFrameworkCore;
+using SemanticDb.Core.Abstractions;
+using SemanticDb.Core.Models;
+using SemanticDb.Core.Outbox;
+
+namespace SemanticDb.EF.Stores;
+
+public class EfRagOutboxStore : IRagOutboxStore
+{
+    private readonly DbContext _dbContext;
+
+    public EfRagOutboxStore(DbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public Task<List<RagOutboxEntry>> ListAsync(RagSearchCriteria criteria, CancellationToken cancellationToken)
+    {
+        return _dbContext
+            .Set<RagOutboxEntry>()
+            .Where(e => e.ClaimedBy == criteria.instanceId
+                        && (e.Status == RagOutboxStatus.Processing || e.Status == RagOutboxStatus.ProcessingDelete))
+            .Take(criteria.Take)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task SetStaleEntriesToPending(TimeSpan staleTimeout, CancellationToken cancellationToken)
+    {
+        DateTime staleThreshold = DateTime.UtcNow - staleTimeout;
+        return _dbContext
+            .Set<RagOutboxEntry>()
+            .Where(e => (e.Status == RagOutboxStatus.Processing || e.Status == RagOutboxStatus.ProcessingDelete)
+                        && e.ClaimedAt < staleThreshold)
+            .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Status, x =>
+                        x.Status == RagOutboxStatus.ProcessingDelete
+                            ? RagOutboxStatus.PendingDelete
+                            : RagOutboxStatus.Pending)
+                    .SetProperty(x => x.ClaimedBy, (string?)null)
+                    .SetProperty(x => x.ClaimedAt, (DateTime?)null)
+                    .SetProperty(x => x.NextRetryAt, (DateTime?)null),
+                cancellationToken);
+    }
+
+    public Task ClaimBatchAsync(string instanceId, int batchSize, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+
+        // SQL Server: UPDLOCK prevents other readers from taking shared locks on the same rows;
+        // READPAST skips rows already locked, so concurrent instances claim disjoint sets.
+        if (_dbContext.Database.ProviderName == "Microsoft.EntityFrameworkCore.SqlServer")
+        {
+            return _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                 UPDATE TOP ({batchSize}) RagOutbox WITH (UPDLOCK, READPAST)
+                 SET Status      = CASE Status
+                                     WHEN {(int)RagOutboxStatus.PendingDelete} THEN {(int)RagOutboxStatus.ProcessingDelete}
+                                     ELSE {(int)RagOutboxStatus.Processing}
+                                   END,
+                     ClaimedBy   = {instanceId},
+                     ClaimedAt   = {now}
+                 WHERE Status IN ({(int)RagOutboxStatus.Pending}, {(int)RagOutboxStatus.PendingDelete})
+                   AND (NextRetryAt IS NULL OR NextRetryAt <= {now})
+                 """,
+                cancellationToken);
+        }
+
+        // Other providers: best-effort (no skip-locked equivalent in EF Core bulk updates)
+        return _dbContext
+            .Set<RagOutboxEntry>()
+            .Where(e => (e.Status == RagOutboxStatus.Pending || e.Status == RagOutboxStatus.PendingDelete)
+                        && (e.NextRetryAt == null || e.NextRetryAt <= now))
+            .Take(batchSize)
+            .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Status, x =>
+                        x.Status == RagOutboxStatus.PendingDelete
+                            ? RagOutboxStatus.ProcessingDelete
+                            : RagOutboxStatus.Processing)
+                    .SetProperty(x => x.ClaimedBy, instanceId)
+                    .SetProperty(x => x.ClaimedAt, now),
+                cancellationToken);
+    }
+
+    public Task UpsertBatchAsync(
+        IReadOnlyList<RagOutboxEntry> entries,
+        string instanceId,
+        CancellationToken cancellationToken)
+    {
+        // Entries were fetched in this scope so they are already tracked;
+        // SaveChangesAsync persists the mutations applied by the caller (e.g. MarkFailed).
+        return _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public Task DeleteBatchAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken)
+    {
+        return _dbContext
+            .Set<RagOutboxEntry>()
+            .Where(x => ids.Contains(x.Id))
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
+    public Task<int> CountByStatusAsync(RagOutboxStatus status, CancellationToken cancellationToken = default)
+    {
+        return _dbContext
+            .Set<RagOutboxEntry>()
+            .CountAsync(e => e.Status == status, cancellationToken);
+    }
+
+    public async Task EnqueueReindexAsync(
+        string chunkName,
+        string entityType,
+        Type entityClrType,
+        CancellationToken cancellationToken = default)
+    {
+        var entityMetadata = _dbContext.Model.FindEntityType(entityClrType)!;
+        var pkProperty = entityMetadata.FindPrimaryKey()!.Properties[0];
+
+        const int batchSize = 500;
+        var skip = 0;
+
+        var setMethod = typeof(DbContext)
+            .GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!
+            .MakeGenericMethod(entityClrType);
+
+        var queryable = (IQueryable<object>)setMethod.Invoke(_dbContext, null)!;
+
+        while (true)
+        {
+            var batch = await queryable
+                .Skip(skip)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+
+            if (batch.Count == 0)
+                break;
+
+            var entries = batch.Select(entity => new RagOutboxEntry
+            {
+                EntityType = entityType,
+                EntityId = entity.GetType().GetProperty(pkProperty.Name)!
+                    .GetValue(entity)?.ToString() ?? string.Empty,
+                ChunkName = chunkName,
+                Status = RagOutboxStatus.Pending
+            }).ToList();
+
+            await _dbContext.Set<RagOutboxEntry>().AddRangeAsync(entries, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _dbContext.ChangeTracker.Clear();
+
+            if (batch.Count < batchSize)
+                break;
+
+            skip += batchSize;
+        }
+    }
+}

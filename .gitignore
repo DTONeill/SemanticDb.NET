@@ -1,0 +1,30 @@
+# Build output
+bin/
+obj/
+artifacts/
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# Claude Code
+.claude/
+
+# User-specific files
+*.user
+*.suo
+.vs/
+.idea/
+*.DotSettings.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — copy appsettings.example.json and fill in real values locally
+samples/**/appsettings.json
+!samples/**/appsettings.example.json
+
+# Coverage reports
+coverage/
+TestResults/

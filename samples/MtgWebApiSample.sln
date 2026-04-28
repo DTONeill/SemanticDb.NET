@@ -1,0 +1,52 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MtgWebApiSample.SqlServer", "MtgWebApiSample.SqlServer\MtgWebApiSample.SqlServer.csproj", "{D4D79166-C464-49C9-B844-58ED70FC6489}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MtgWebApiSample.Core", "MtgWebApiSample.Core\MtgWebApiSample.Core.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MtgWebApiSample.Tests", "..\tests\MtgWebApiSample.Tests\MtgWebApiSample.Tests.csproj", "{C8D9E0F1-A2B3-4567-89CD-EF0123456789}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticDb.Core", "..\src\SemanticDb.Core\SemanticDb.Core.csproj", "{539D581E-54F1-4458-A8EF-F23FF1D0D927}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticDb.EF", "..\src\SemanticDb.EF\SemanticDb.EF.csproj", "{E711D830-F549-4CB7-8585-425B14DAD16F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticDb.EF.SqlServer", "..\src\SemanticDb.EF.SqlServer\SemanticDb.EF.SqlServer.csproj", "{2777E616-4EEF-4D33-B2C9-4E4B60C2DF88}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D4D79166-C464-49C9-B844-58ED70FC6489}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4D79166-C464-49C9-B844-58ED70FC6489}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4D79166-C464-49C9-B844-58ED70FC6489}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4D79166-C464-49C9-B844-58ED70FC6489}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8D9E0F1-A2B3-4567-89CD-EF0123456789}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8D9E0F1-A2B3-4567-89CD-EF0123456789}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8D9E0F1-A2B3-4567-89CD-EF0123456789}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8D9E0F1-A2B3-4567-89CD-EF0123456789}.Release|Any CPU.Build.0 = Release|Any CPU
+		{539D581E-54F1-4458-A8EF-F23FF1D0D927}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{539D581E-54F1-4458-A8EF-F23FF1D0D927}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{539D581E-54F1-4458-A8EF-F23FF1D0D927}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{539D581E-54F1-4458-A8EF-F23FF1D0D927}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E711D830-F549-4CB7-8585-425B14DAD16F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E711D830-F549-4CB7-8585-425B14DAD16F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E711D830-F549-4CB7-8585-425B14DAD16F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E711D830-F549-4CB7-8585-425B14DAD16F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2777E616-4EEF-4D33-B2C9-4E4B60C2DF88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2777E616-4EEF-4D33-B2C9-4E4B60C2DF88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2777E616-4EEF-4D33-B2C9-4E4B60C2DF88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2777E616-4EEF-4D33-B2C9-4E4B60C2DF88}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
