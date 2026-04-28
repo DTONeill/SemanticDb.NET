@@ -1,7 +1,0 @@
-<Solution>
-    <Project Path="src/SemanticDb.Core/SemanticDb.Core.csproj" />
-    <Project Path="src/SemanticDb.EF.SqlServer/SemanticDb.EF.SqlServer.csproj" />
-    <Project Path="src/SemanticDb.EF/SemanticDb.EF.csproj" />
-    <Project Path="tests/SemanticDb.IntegrationTests/SemanticDb.IntegrationTests.csproj" />
-    <Project Path="tests/SemanticDb.Tests/SemanticDb.Tests.csproj" />
-</Solution>
