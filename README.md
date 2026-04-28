@@ -387,10 +387,7 @@ ISemanticDbService
 ## Roadmap
 
 - [ ] PostgreSQL + pgvector provider (`SemanticDb.EF.Postgres`) — highest priority
-- [ ] Fluent property selector for `ToSearchContent` — declare which fields to include without writing formatting code
-- [ ] LLM-generated `ToSearchContent` (opt-in) — produce natural prose at index time for richer embeddings
 - [ ] Polling sync strategy for microservice / cross-process indexing
-- [x] `Microsoft.Extensions.AI` — SK dependency removed; any MEAI-compatible provider works out of the box
 - [ ] Support for multi-entity chunks (combine multiple tables into one chunk)
 - [ ] OpenTelemetry metrics integration
 
