@@ -10,6 +10,10 @@ public sealed class SemanticDbOptions
     /// </summary>
     public int MaxRetries { get; set; } = 3;
 
+    /// <summary>
+    /// Default maximum number of results returned by <see cref="SemanticDb.Core.Abstractions.ISemanticDbService.SearchAsync{TSearchableEntity}"/>
+    /// when no explicit limit is provided. Default 25.
+    /// </summary>
     public int DefaultSearchLimit { get; set; } = 25;
 
     /// <summary>

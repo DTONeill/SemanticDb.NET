@@ -1,4 +1,6 @@
-﻿namespace SemanticDb.Core.Chunk;
+﻿using SemanticDb.Core.Abstractions;
+
+namespace SemanticDb.Core.Chunk;
 
 /// <summary>
 /// Represents a single semantic search result.

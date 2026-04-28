@@ -6,6 +6,9 @@ using SemanticDb.Core.Health;
 
 namespace SemanticDb.Core.Extensions;
 
+/// <summary>
+/// Extension methods for configuring embeddings and health checks on a <see cref="SemanticDbBuilder"/>.
+/// </summary>
 public static class SemanticDbBuilderExtensions
 {
     /// <summary>

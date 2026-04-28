@@ -1,4 +1,6 @@
-﻿namespace SemanticDb.Core.Models;
+﻿using SemanticDb.Core.Abstractions;
+
+namespace SemanticDb.Core.Models;
 
 /// <summary>
 /// Represents a stored semantic search chunk with its embedding vector.

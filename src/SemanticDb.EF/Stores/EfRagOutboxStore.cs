@@ -5,6 +5,10 @@ using SemanticDb.Core.Outbox;
 
 namespace SemanticDb.EF.Stores;
 
+/// <summary>
+/// EF Core implementation of <see cref="SemanticDb.Core.Abstractions.IRagOutboxStore"/>.
+/// Uses provider-specific locking hints on SQL Server to allow concurrent processor instances to claim disjoint batches.
+/// </summary>
 public class EfRagOutboxStore : IRagOutboxStore
 {
     private readonly DbContext _dbContext;
@@ -14,6 +18,7 @@ public class EfRagOutboxStore : IRagOutboxStore
         _dbContext = dbContext;
     }
 
+    /// <inheritdoc />
     public Task<List<RagOutboxEntry>> ListAsync(RagSearchCriteria criteria, CancellationToken cancellationToken)
     {
         return _dbContext
@@ -24,6 +29,7 @@ public class EfRagOutboxStore : IRagOutboxStore
             .ToListAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task SetStaleEntriesToPending(TimeSpan staleTimeout, CancellationToken cancellationToken)
     {
         DateTime staleThreshold = DateTime.UtcNow - staleTimeout;
@@ -42,6 +48,7 @@ public class EfRagOutboxStore : IRagOutboxStore
                 cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task ClaimBatchAsync(string instanceId, int batchSize, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
@@ -81,6 +88,7 @@ public class EfRagOutboxStore : IRagOutboxStore
                 cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task UpsertBatchAsync(
         IReadOnlyList<RagOutboxEntry> entries,
         string instanceId,
@@ -91,6 +99,7 @@ public class EfRagOutboxStore : IRagOutboxStore
         return _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task DeleteBatchAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken)
     {
         return _dbContext
@@ -99,6 +108,7 @@ public class EfRagOutboxStore : IRagOutboxStore
             .ExecuteDeleteAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task<int> CountByStatusAsync(RagOutboxStatus status, CancellationToken cancellationToken = default)
     {
         return _dbContext
@@ -106,6 +116,7 @@ public class EfRagOutboxStore : IRagOutboxStore
             .CountAsync(e => e.Status == status, cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task EnqueueReindexAsync(
         string chunkName,
         string entityType,

@@ -12,6 +12,9 @@ using SemanticDb.EF.Stores;
 
 namespace SemanticDb.EF.Extensions;
 
+/// <summary>
+/// Extension methods for registering the EF Core provider on a <see cref="SemanticDbBuilder"/>.
+/// </summary>
 public static class SemanticDbBuilderExtensions
 {
     /// <summary>

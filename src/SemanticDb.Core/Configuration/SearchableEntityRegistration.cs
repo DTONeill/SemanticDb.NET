@@ -1,4 +1,6 @@
-﻿namespace SemanticDb.Core.Configuration;
+﻿using SemanticDb.Core.Abstractions;
+
+namespace SemanticDb.Core.Configuration;
 
 /// <summary>
 /// Holds the runtime registration of a single <see cref="ISearchableEntity{T}"/> implementation.

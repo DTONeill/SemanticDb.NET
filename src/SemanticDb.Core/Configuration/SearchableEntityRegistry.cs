@@ -26,18 +26,23 @@ public sealed class SearchableEntityRegistry
         list.Add(registration);
     }
 
+    /// <summary>Returns <see langword="true"/> if any chunk definition is registered for the given entity type.</summary>
     public bool IsRegistered(Type entityType) =>
         _byEntityType.ContainsKey(entityType);
 
+    /// <summary>Looks up a registration by chunk name. Returns <see langword="false"/> if not found.</summary>
     public bool TryGetByChunkName(string chunkName, out SearchableEntityRegistration? registration) =>
         _registrationsByChunkName.TryGetValue(chunkName, out registration);
 
+    /// <summary>Returns all chunk definitions registered for the given entity type.</summary>
     public IEnumerable<SearchableEntityRegistration> GetRegistrations(Type entityType) =>
         _byEntityType.TryGetValue(entityType, out var list) ? list : [];
 
+    /// <summary>Looks up a registration by its implementation type. Returns <see langword="false"/> if not found.</summary>
     public bool TryGetByImplementationType(Type implementationType, out SearchableEntityRegistration? registration) =>
         _byImplementationType.TryGetValue(implementationType, out registration);
 
+    /// <summary>Returns all registered chunk definitions.</summary>
     public IEnumerable<SearchableEntityRegistration> GetRegistrations() =>
         _registrationsByChunkName.Values;
 }

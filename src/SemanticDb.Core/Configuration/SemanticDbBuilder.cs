@@ -7,8 +7,13 @@ namespace SemanticDb.Core.Configuration;
 /// </summary>
 public sealed class SemanticDbBuilder
 {
+    /// <summary>The service collection used to register dependencies.</summary>
     public IServiceCollection Services { get; }
+
+    /// <summary>The options configured for this semantic search instance.</summary>
     public SemanticDbOptions Options { get; }
+
+    /// <summary>The registry of all discovered <see cref="SemanticDb.Core.Abstractions.ISearchableEntity{T}"/> implementations.</summary>
     public SearchableEntityRegistry Registry { get; }
 
     /// <summary>
@@ -17,6 +22,7 @@ public sealed class SemanticDbBuilder
     /// </summary>
     public string? ProviderKey { get; set; }
 
+    /// <summary>Keyed service key used to resolve the <see cref="Microsoft.Extensions.AI.IEmbeddingGenerator{TInput,TEmbedding}"/> registered via <c>UseEmbeddingsProvider</c>.</summary>
     public const string EmbeddingGeneratorKey = "SemanticDb.EmbeddingGenerator";
 
     internal SemanticDbBuilder(

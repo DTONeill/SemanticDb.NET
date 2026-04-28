@@ -14,6 +14,9 @@ public sealed class SemanticDbHealthCheck : IHealthCheck
 {
     private readonly IServiceScopeFactory _scopeFactory;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="SemanticDbHealthCheck"/>.
+    /// </summary>
     public SemanticDbHealthCheck(IServiceScopeFactory scopeFactory)
         => _scopeFactory = scopeFactory;
 

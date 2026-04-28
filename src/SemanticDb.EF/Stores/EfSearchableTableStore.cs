@@ -7,6 +7,10 @@ using SemanticDb.Core.Abstractions;
 
 namespace SemanticDb.EF.Stores;
 
+/// <summary>
+/// EF Core implementation of <see cref="SemanticDb.Core.Abstractions.ISearchableTableStore"/>.
+/// Uses compiled expression delegates cached per entity type for efficient batch loading.
+/// </summary>
 public class EfSearchableTableStore : ISearchableTableStore
 {
     private readonly DbContext _dbContext;
@@ -21,6 +25,9 @@ public class EfSearchableTableStore : ISearchableTableStore
         _dbContext = dbContext;
     }
 
+    /// <summary>
+    /// Loads a single entity by its serialized primary key.
+    /// </summary>
     public ValueTask<object?> LoadEntityAsync(Type entityType, string entityId, CancellationToken cancellationToken)
     {
         IEntityType entityMetadata = _dbContext.Model.FindEntityType(entityType)!;
@@ -33,6 +40,7 @@ public class EfSearchableTableStore : ISearchableTableStore
         return _dbContext.FindAsync(entityType, keyValues, cancellationToken);
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyDictionary<string, object?>> LoadEntitiesBatchAsync(
         Type entityType,
         IReadOnlyList<string> entityIds,
@@ -94,6 +102,7 @@ public class EfSearchableTableStore : ISearchableTableStore
             .Compile();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<string>> LoadAllEntityIdsAsync(
         Type entityType,
         CancellationToken cancellationToken = default)
