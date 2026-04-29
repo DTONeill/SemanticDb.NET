@@ -23,7 +23,7 @@ public sealed class SemanticDbResult
     public required float Score { get; init; }
 
     /// <summary>
-    /// The prompt context text for this chunk, as rendered by <see cref="ISearchableEntity{T}.ToPromptContext"/>.
+    /// The prompt context text for this chunk, as rendered by <see cref="ISearchableEntity{T,TScopeKey}.ToPromptContext"/>.
     /// Ready to pass directly to an LLM without an extra database round-trip.
     /// </summary>
     public required string PromptContext { get; init; }

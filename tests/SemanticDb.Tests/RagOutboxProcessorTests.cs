@@ -44,7 +44,7 @@ public class RagOutboxProcessorTests
     private RagOutboxProcessor CreateProcessor() =>
         new(_scopeFactory.Object, _options, NullLogger<RagOutboxProcessor>.Instance, _registry);
 
-    private void RegisterChunk(string chunkName) =>
+    private void RegisterChunk(string chunkName, Func<object, object?>? getScopeKey = null) =>
         _registry.Register(new SearchableEntityRegistration
         {
             ChunkName = chunkName,
@@ -53,7 +53,7 @@ public class RagOutboxProcessorTests
             Version = 1,
             ToSearchContent = _ => "content",
             ToPromptContext = _ => "context",
-            GetScopeKey = _ => null,
+            GetScopeKey = getScopeKey ?? (_ => null),
         });
 
     [Fact]
@@ -220,6 +220,40 @@ public class RagOutboxProcessorTests
         Assert.Single(upserted);
         Assert.Equal(RagOutboxStatus.Failed, upserted[0].Status);
         Assert.Null(upserted[0].NextRetryAt);
+    }
+
+    [Fact]
+    public async Task ProcessPendingEntriesAsync_StoresScopeKey_FromGetScopeKey()
+    {
+        RegisterChunk("MyChunk", getScopeKey: _ => 99);
+        var entry = new RagOutboxEntry
+        {
+            EntityType = typeof(FakeEntity).FullName!,
+            EntityId = "entity-1",
+            ChunkName = "MyChunk",
+            Status = RagOutboxStatus.Processing,
+        };
+        _outboxStore.Setup(s => s.ListAsync(It.IsAny<RagSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([entry]);
+        _tableStore
+            .Setup(s => s.LoadEntitiesBatchAsync(typeof(FakeEntity), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, object?> { ["entity-1"] = new FakeEntity() });
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<EmbeddingGenerationOptions?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>([new Embedding<float>(new float[] { 0.1f })]));
+
+        List<ChunkUpsertEntry> upserted = [];
+        _chunkStore
+            .Setup(s => s.UpsertBatchAsync(It.IsAny<IReadOnlyList<ChunkUpsertEntry>>(), It.IsAny<CancellationToken>()))
+            .Callback<IReadOnlyList<ChunkUpsertEntry>, CancellationToken>((entries, _) => upserted.AddRange(entries))
+            .Returns(Task.CompletedTask);
+        _outboxStore.Setup(s => s.DeleteBatchAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await CreateProcessor().ProcessPendingEntriesAsync(CancellationToken.None);
+
+        Assert.Single(upserted);
+        Assert.Equal("99", upserted[0].ScopeKey);
     }
 
     private sealed class FakeEntity { }

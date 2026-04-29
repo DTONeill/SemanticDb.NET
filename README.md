@@ -12,7 +12,7 @@ SemanticDb is for .NET developers who already have an EF Core application and wa
 
 ```csharp
 // 1. Define how your entity is indexed
-public class PrescriptionSearchable : ISearchableEntity<Prescription>
+public class PrescriptionSearchable : ISearchableEntity<Prescription, int>
 {
     public string ToSearchContent(Prescription entity) =>
         $"Prescription dated {entity.Date}: {entity.Medication} {entity.Dosage}";
@@ -42,7 +42,7 @@ services.AddDbContext<AppDbContext>((sp, options) =>
            .AddSemanticDbInterceptors(sp));
 
 // 5. Search — results include PromptContext, ready to pass to an LLM
-var results = await semanticSearchService.SearchAsync<PrescriptionSearchable>(
+var results = await semanticSearchService.SearchAsync<PrescriptionSearchable, int>(
     query: "blood pressure medication",
     scopeKey: patientId);
 
@@ -80,7 +80,7 @@ foreach (var result in results)
 - **Automatic re-indexing** — increment `Version` on your searchable class to trigger a full re-index transparently at startup
 - **Scoped search** — partition your index by tenant, patient, or any key using any type; no manual `.ToString()` required
 - **Prompt context on results** — `SemanticDbResult.PromptContext` is stored alongside the embedding, eliminating an extra DB round-trip before feeding results to an LLM
-- **Type-safe search API** — `SearchAsync<TSearchableEntity>()` replaces magic strings with compile-time safety
+- **Type-safe search API** — `SearchAsync<TSearchableEntity, TScopeKey>()` enforces the correct scope key type at compile time; passing the wrong type is a build error
 - **Horizontal scaling safe** — optimistic concurrency prevents duplicate re-indexing across multiple instances
 - **Native SQL Server vector search** — uses `VECTOR_DISTANCE` for fast similarity search directly in SQL Server 2025
 - **Pluggable vector providers** — swap the vector store without changing your application code
@@ -199,10 +199,10 @@ EF Core will automatically generate the correct `VECTOR(1536)` column type in th
 
 ## Defining Searchable Entities
 
-Implement `ISearchableEntity<T>` in a dedicated class — never on the entity itself.
+Implement `ISearchableEntity<T, TScopeKey>` in a dedicated class — never on the entity itself.
 
 ```csharp
-public class CardsBySetSearchable : ISearchableEntity<Card>
+public class CardsBySetSearchable : ISearchableEntity<Card, string>
 {
     // Text sent to the embedding model — write natural prose for best results
     public string ToSearchContent(Card entity) =>
@@ -221,11 +221,11 @@ public class CardsBySetSearchable : ISearchableEntity<Card>
 }
 ```
 
-You can register multiple `ISearchableEntity<T>` implementations for the same entity type — each produces an independent index under its own name:
+You can register multiple `ISearchableEntity<T, TScopeKey>` implementations for the same entity type — each produces an independent index under its own name:
 
 ```csharp
-public class CardsByColorSearchable : ISearchableEntity<Card> { ... }
-public class CardsBySetSearchable   : ISearchableEntity<Card> { ... }
+public class CardsByColorSearchable : ISearchableEntity<Card, string> { ... }
+public class CardsBySetSearchable   : ISearchableEntity<Card, string> { ... }
 
 // Search against a specific index by type
 var results = await search.SearchAsync<CardsByColorSearchable>("blue card draw spell");
@@ -238,12 +238,10 @@ var results = await search.SearchAsync<CardsBySetSearchable>("Innistrad horror c
 |---|---|---|
 | `ToSearchContent(T)` | Yes | Text indexed and embedded for search |
 | `ToPromptContext(T)` | No | Text stored alongside the embedding and returned on results (defaults to `ToSearchContent`) |
-| `GetScopeKey(T)` | No | Partition key for scoped search (default: `null`) |
+| `GetScopeKey(T)` | No | Partition key for scoped search; the return type is `TScopeKey?` and enforced at the `SearchAsync` call site (default: `null`) |
 | `Version` | No | Incremented to trigger re-indexing (default: `1`) |
 
 > The chunk name is derived from the implementation class name: `CardsBySetSearchable` → `"CardsBySetSearchable"`. This is what is stored in the database.
-
-> `scopeKey` in `SearchAsync` accepts any type — the library calls `.ToString()` internally, matching the value stored by `GetScopeKey`.
 
 ---
 
@@ -278,7 +276,7 @@ Re-indexing is processed asynchronously by the background outbox processor and d
 ### One-shot question answering
 
 ```csharp
-var results = await semanticSearch.SearchAsync<PrescriptionSearchable>(
+var results = await semanticSearch.SearchAsync<PrescriptionSearchable, int>(
     query: "blood pressure medication",
     scopeKey: patientId);
 
@@ -312,7 +310,7 @@ while (true)
     var question = Console.ReadLine()!;
 
     // Re-retrieve for every turn — keeps context relevant as the conversation evolves
-    var results = await semanticSearch.SearchAsync<PrescriptionSearchable>(
+    var results = await semanticSearch.SearchAsync<PrescriptionSearchable, int>(
         query: question,
         scopeKey: patientId);
 
@@ -397,21 +395,6 @@ await context.Prescriptions.ExecuteDeleteAsync(...);
 There is currently no manual indexing API for these cases. If your application relies on bulk operations, a full re-index can be triggered by incrementing Version on the relevant ISearchableEntity<T> and restarting the application -- but this is not suitable for runtime scenarios.
 A manual indexing API (IndexAsync, IndexRangeAsync) is tracked in #1.
 
-
-### Scope key is stringly typed at runtime
-GetScopeKey returns object? and SearchAsync accepts object? for the scope key, but the library calls .ToString() internally on both sides. This means the type you pass does not matter -- only its string representation does.
-These are equivalent at runtime -- both resolve to "123"
- ```csharp
-await search.SearchAsync<PrescriptionSearchable>("blood pressure", scopeKey: 123);
-await search.SearchAsync<PrescriptionSearchable>("blood pressure", scopeKey: "123");
- ```
-
-This is a silent mismatch -- Guid.ToString() produces "d3b07384-...
-but if GetScopeKey stored the int PatientId, they will never match
- ```csharp
-await search.SearchAsync<PrescriptionSearchable>("blood pressure", scopeKey: someGuid);
- ```
-Always use the same type and format in GetScopeKey and SearchAsync. Mismatches produce no error -- just empty results.
 
 ---
 

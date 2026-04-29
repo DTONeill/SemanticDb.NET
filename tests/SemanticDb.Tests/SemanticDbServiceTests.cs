@@ -76,7 +76,7 @@ public class SemanticDbServiceTests
             .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), "tenant-1", It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        await CreateService().SearchAsync<FakeSearchableEntity>("query", scopeKey: "tenant-1");
+        await CreateService().SearchAsync<FakeSearchableEntity, string>("query", "tenant-1");
 
         _vectorSearch.Verify(v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), "tenant-1", It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -132,12 +132,43 @@ public class SemanticDbServiceTests
     }
 
     [Fact]
+    public async Task SearchAsync_Scoped_WithIntKey_PassesStringRepresentationToVectorSearch()
+    {
+        RegisterChunk<IntKeyEntity>("IntKeyChunk");
+        SetupEmbedding([1f, 0f]);
+        _vectorSearch
+            .Setup(v => v.SearchAsync("IntKeyChunk", It.IsAny<float[]>(), "42", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        await CreateService().SearchAsync<IntKeyEntity, int>("query", 42);
+
+        _vectorSearch.Verify(v => v.SearchAsync("IntKeyChunk", It.IsAny<float[]>(), "42", It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchAsync_Scoped_WithGuidKey_PassesStringRepresentationToVectorSearch()
+    {
+        RegisterChunk<GuidKeyEntity>("GuidKeyChunk");
+        var guid = Guid.Parse("12345678-1234-1234-1234-123456789012");
+        SetupEmbedding([1f, 0f]);
+        _vectorSearch
+            .Setup(v => v.SearchAsync("GuidKeyChunk", It.IsAny<float[]>(), guid.ToString(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        await CreateService().SearchAsync<GuidKeyEntity, Guid>("query", guid);
+
+        _vectorSearch.Verify(v => v.SearchAsync("GuidKeyChunk", It.IsAny<float[]>(), guid.ToString(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task SearchAsync_ThrowsInvalidOperationException_WhenNotRegistered()
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             CreateService().SearchAsync<UnregisteredSearchableEntity>("query"));
     }
 
-    private sealed class FakeSearchableEntity : ISearchableEntity { }
+    private sealed class FakeSearchableEntity : ISearchableEntity<string> { }
+    private sealed class IntKeyEntity : ISearchableEntity<int> { }
+    private sealed class GuidKeyEntity : ISearchableEntity<Guid> { }
     private sealed class UnregisteredSearchableEntity : ISearchableEntity { }
 }

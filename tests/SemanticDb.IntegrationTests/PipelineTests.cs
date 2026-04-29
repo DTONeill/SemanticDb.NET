@@ -52,11 +52,11 @@ public sealed class PipelineTests : IntegrationTestBase
 
         await Processor.ProcessPendingAsync();
 
-        var resultsA = await SearchService.SearchAsync<ProductChunk>("fire", scopeKey: "tenant-A");
+        var resultsA = await SearchService.SearchAsync<ProductChunk, string>("fire", "tenant-A");
         Assert.Single(resultsA);
         Assert.Equal("3", resultsA[0].EntityId);
 
-        var resultsB = await SearchService.SearchAsync<ProductChunk>("fire", scopeKey: "tenant-B");
+        var resultsB = await SearchService.SearchAsync<ProductChunk, string>("fire", "tenant-B");
         Assert.Single(resultsB);
         Assert.Equal("4", resultsB[0].EntityId);
     }

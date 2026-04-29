@@ -2,7 +2,7 @@ using SemanticDb.Core.Abstractions;
 
 namespace SemanticDb.IntegrationTests.Infrastructure;
 
-public sealed class ProductChunk : ISearchableEntity<TestProduct>
+public sealed class ProductChunk : ISearchableEntity<TestProduct, string>
 {
     public int Version => 1;
     public string ToSearchContent(TestProduct entity) => entity.Description;

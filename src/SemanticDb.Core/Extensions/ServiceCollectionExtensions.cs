@@ -71,15 +71,15 @@ public static class ServiceCollectionExtensions
 
     private static void ScanAssembly(Assembly assembly, SearchableEntityRegistry registry)
     {
-        var searchableType = typeof(ISearchableEntity<>);
+        var searchableType = typeof(ISearchableEntity<,>);
 
         var implementations = assembly.GetTypes()
             .Where(t => t is { IsAbstract: false, IsInterface: false })
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == searchableType)
-                .Select(i => (ImplementationType: t, EntityType: i.GetGenericArguments()[0])));
+                .Select(i => (ImplementationType: t, EntityType: i.GetGenericArguments()[0], ScopeKeyType: i.GetGenericArguments()[1])));
 
-        foreach (var (implType, entityType) in implementations)
+        foreach (var (implType, entityType, scopeKeyType) in implementations)
         {
             object instance;
             try
@@ -94,23 +94,23 @@ public static class ServiceCollectionExtensions
                     $"Ensure it has a public parameterless constructor.", ex);
             }
 
-            var iface = typeof(ISearchableEntity<>).MakeGenericType(entityType);
+            var iface = typeof(ISearchableEntity<,>).MakeGenericType(entityType, scopeKeyType);
 
-            var toSearchContent = iface.GetMethod(nameof(ISearchableEntity<object>.ToSearchContent))
+            var toSearchContent = iface.GetMethod(nameof(ISearchableEntity<object, object>.ToSearchContent))
                                   ?? throw new InvalidOperationException(
-                                      $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object>.ToSearchContent)}.");
+                                      $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToSearchContent)}.");
 
-            var toPromptContext = iface.GetMethod(nameof(ISearchableEntity<object>.ToPromptContext))
+            var toPromptContext = iface.GetMethod(nameof(ISearchableEntity<object, object>.ToPromptContext))
                                   ?? throw new InvalidOperationException(
-                                      $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object>.ToPromptContext)}.");
+                                      $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToPromptContext)}.");
 
-            var getScopeKey = iface.GetMethod(nameof(ISearchableEntity<object>.GetScopeKey))
+            var getScopeKey = iface.GetMethod(nameof(ISearchableEntity<object, object>.GetScopeKey))
                               ?? throw new InvalidOperationException(
-                                  $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object>.GetScopeKey)}.");
+                                  $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.GetScopeKey)}.");
 
-            var versionProp = iface.GetProperty(nameof(ISearchableEntity<object>.Version))
+            var versionProp = iface.GetProperty(nameof(ISearchableEntity<object, object>.Version))
                               ?? throw new InvalidOperationException(
-                                  $"'{implType.FullName}' does not expose the {nameof(ISearchableEntity<object>.Version)} property.");
+                                  $"'{implType.FullName}' does not expose the {nameof(ISearchableEntity<object, object>.Version)} property.");
 
             registry.Register(new SearchableEntityRegistration
             {

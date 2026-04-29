@@ -28,7 +28,7 @@ public sealed class RagChunk
     public string? ScopeKey { get; set; }
 
     /// <summary>
-    /// The rendered prompt context text for this chunk, as returned by <see cref="ISearchableEntity{T}.ToPromptContext"/>.
+    /// The rendered prompt context text for this chunk, as returned by <see cref="ISearchableEntity{T,TScopeKey}.ToPromptContext"/>.
     /// </summary>
     public required string PromptContext { get; set; }
 

@@ -26,9 +26,9 @@ public static class CardEndpoints
             ISemanticDbService semanticSearch,
             DbContext db) =>
         {
-            var results = await semanticSearch.SearchAsync<CardsByManaCostSearchableEntity>(
-                query: q,
-                scopeKey: manaCost);
+            var results = manaCost is null
+                ? await semanticSearch.SearchAsync<CardsByManaCostSearchableEntity>(query: q)
+                : await semanticSearch.SearchAsync<CardsByManaCostSearchableEntity, string>(query: q, manaCost);
 
             if (results.Count == 0)
                 return Results.NotFound();
@@ -53,9 +53,9 @@ public static class CardEndpoints
             ISemanticDbService semanticSearch,
             IChatClient chatClient) =>
         {
-            var results = await semanticSearch.SearchAsync<CardsByManaCostSearchableEntity>(
-                query: q,
-                scopeKey: manaCost);
+            var results = manaCost is null
+                ? await semanticSearch.SearchAsync<CardsByManaCostSearchableEntity>(query: q)
+                : await semanticSearch.SearchAsync<CardsByManaCostSearchableEntity, string>(query: q, manaCost);
 
             if (results.Count == 0)
                 return Results.NotFound();

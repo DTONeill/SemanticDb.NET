@@ -33,10 +33,30 @@ internal sealed class SemanticDbService : ISemanticDbService
     /// <inheritdoc />
     public Task<IReadOnlyList<SemanticDbResult>> SearchAsync<TSearchableEntity>(
         string query,
-        object? scopeKey = null,
         int? limit = null,
         CancellationToken cancellationToken = default)
         where TSearchableEntity : ISearchableEntity
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            throw new ArgumentException("Query cannot be null or whitespace.", nameof(query));
+
+        if (limit is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit), "Limit must be greater than zero.");
+
+        if (!_registry.TryGetByImplementationType(typeof(TSearchableEntity), out var registration))
+            throw new InvalidOperationException(
+                $"'{typeof(TSearchableEntity).Name}' is not registered as a searchable entity.");
+
+        return SearchAsync(registration!.ChunkName, query, scopeKey: null, limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<SemanticDbResult>> SearchAsync<TSearchableEntity, TScopeKey>(
+        string query,
+        TScopeKey scopeKey,
+        int? limit = null,
+        CancellationToken cancellationToken = default)
+        where TSearchableEntity : ISearchableEntity<TScopeKey>
     {
         if (string.IsNullOrWhiteSpace(query))
             throw new ArgumentException("Query cannot be null or whitespace.", nameof(query));
