@@ -10,12 +10,6 @@
 
 SemanticDb is for .NET developers who already have an EF Core application and want to add semantic/RAG search to their existing entities without building a separate ingestion pipeline. Unlike document-ingestion libraries, there is no file import step -- your existing SaveChanges calls automatically queue indexing work via an EF Core interceptor. You define how each entity is indexed in one class, register the library, and search is available with no changes to your domain models or your existing DbContext workflow.
 
----
-
-## Overview
-
-Lets you add semantic search to your existing .NET application without changing your domain models. You define *how* your entities are indexed by implementing a simple interface, and the library handles the rest: change detection via EF Core interceptors, asynchronous embedding generation via Microsoft.Extensions.AI, vector storage, and similarity search.
-
 ```csharp
 // 1. Define how your entity is indexed
 public class PrescriptionSearchable : ISearchableEntity<Prescription>
@@ -391,13 +385,15 @@ ISemanticDbService
 ## Limitations and Gotchas
 ### EF Core interceptor scope
 SemanticDb detects changes through an EF Core SaveInterceptor. This means only operations that go through SaveChangesAsync() on a tracked DbContext will trigger indexing. The following patterns will silently bypass the outbox:
- None of these will trigger indexing:
+
  ```csharp
+ // None of these will trigger indexing:
 await context.Database.ExecuteSqlRawAsync("UPDATE Prescriptions SET ...");
 await context.Prescriptions.ExecuteUpdateAsync(...); 
 await context.Prescriptions.ExecuteDeleteAsync(...);  
+// Dapper, ADO.NET, or any bulk insert library on the same DB
 ```
-Dapper, ADO.NET, or any bulk insert library on the same DB
+
 There is currently no manual indexing API for these cases. If your application relies on bulk operations, a full re-index can be triggered by incrementing Version on the relevant ISearchableEntity<T> and restarting the application -- but this is not suitable for runtime scenarios.
 A manual indexing API (IndexAsync, IndexRangeAsync) is tracked in #1.
 
@@ -413,8 +409,7 @@ await search.SearchAsync<PrescriptionSearchable>("blood pressure", scopeKey: "12
 This is a silent mismatch -- Guid.ToString() produces "d3b07384-...
 but if GetScopeKey stored the int PatientId, they will never match
  ```csharp
-await search.SearchAsync<PrescriptionSearchable>("blood pressure", 
-scopeKey: someGuid);
+await search.SearchAsync<PrescriptionSearchable>("blood pressure", scopeKey: someGuid);
  ```
 Always use the same type and format in GetScopeKey and SearchAsync. Mismatches produce no error -- just empty results.
 
