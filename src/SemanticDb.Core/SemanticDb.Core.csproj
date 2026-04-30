@@ -5,9 +5,8 @@
     <RootNamespace>SemanticDb.Core</RootNamespace>
     <Description>Core abstractions, outbox pipeline, and embedding orchestration for SemanticDb — a plug-and-play RAG adapter for .NET with EF Core integration.</Description>
     <PackageTags>rag;semantic-db;embeddings;vector-search;ai;microsoft-extensions-ai;ef-core</PackageTags>
-    <Authors>David O'Neill</Authors>
-    <Copyright>Copyright © David O'Neill 2026</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>logo.jpg</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,6 +17,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\assets\logo.jpg">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+      <Link>logo.jpg</Link>
+    </None>
     <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
   </ItemGroup>

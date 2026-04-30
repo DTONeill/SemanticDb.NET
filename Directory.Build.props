@@ -1,8 +1,8 @@
 <Project>
 
   <PropertyGroup>
-    <Authors>DTONeill</Authors>
-    <Copyright>Copyright © DTONeill 2026</Copyright>
+    <Authors>David O'Neill</Authors>
+    <Copyright>Copyright © David O'Neill 2026</Copyright>
     <Version>0.1.0</Version>
     <AssemblyVersion>0.1.0</AssemblyVersion>
     <FileVersion>0.1.0</FileVersion>

@@ -4,8 +4,6 @@
     <TargetFramework>net8.0</TargetFramework>
     <Description>EF Core provider for SemanticDb — adds the change-tracking interceptor, outbox store, chunk store, and an in-memory cosine similarity fallback for development.</Description>
     <PackageTags>rag;semantic-search;embeddings;vector-search;ai;ef-core;entity-framework</PackageTags>
-    <Authors>David O'Neill</Authors>
-    <Copyright>Copyright © David O'Neill 2026</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RootNamespace>SemanticDb.EF</RootNamespace>
   </PropertyGroup>
