@@ -6,6 +6,7 @@
     <PackageTags>rag;semantic-db;embeddings;vector-search;ai;ef-core;sql-server;vector-distance</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RootNamespace>SemanticDb.EF.SqlServer</RootNamespace>
+    <PackageIcon>logo.jpg</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\assets\logo.jpg">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+      <Link>logo.jpg</Link>
+    </None>
     <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
   </ItemGroup>

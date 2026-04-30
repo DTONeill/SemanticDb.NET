@@ -6,6 +6,7 @@
     <PackageTags>rag;semantic-search;embeddings;vector-search;ai;ef-core;entity-framework</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RootNamespace>SemanticDb.EF</RootNamespace>
+    <PackageIcon>logo.jpg</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\assets\logo.jpg">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+      <Link>logo.jpg</Link>
+    </None>
     <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
   </ItemGroup>
