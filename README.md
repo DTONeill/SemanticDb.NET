@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.jpg" alt="SemanticDb logo" width="200" />
+</p>
+
 # SemanticDb
 
 [![NuGet](https://img.shields.io/nuget/v/SemanticDb.Core.svg)](https://www.nuget.org/packages/SemanticDb.Core)
