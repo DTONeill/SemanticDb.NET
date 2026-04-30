@@ -12,6 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -27,13 +31,31 @@ jobs:
         run: dotnet test --no-build --configuration Release
 
       - name: Pack SemanticDb.Core
-        run: dotnet pack src/SemanticDb.Core --no-build --configuration Release --output ./artifacts
+        run: >
+          dotnet pack src/SemanticDb.Core --no-build --configuration Release --output ./artifacts
+          -p:Version=${{ steps.version.outputs.VERSION }}
+          -p:RepositoryCommit=${{ github.sha }}
+          -p:PackageReleaseNotes="https://github.com/DTONeill/SemanticDb.NET/blob/main/CHANGELOG.md"
 
       - name: Pack SemanticDb.EF
-        run: dotnet pack src/SemanticDb.EF --no-build --configuration Release --output ./artifacts
+        run: >
+          dotnet pack src/SemanticDb.EF --no-build --configuration Release --output ./artifacts
+          -p:Version=${{ steps.version.outputs.VERSION }}
+          -p:RepositoryCommit=${{ github.sha }}
+          -p:PackageReleaseNotes="https://github.com/DTONeill/SemanticDb.NET/blob/main/CHANGELOG.md"
 
       - name: Pack SemanticDb.EF.SqlServer
-        run: dotnet pack src/SemanticDb.EF.SqlServer --no-build --configuration Release --output ./artifacts
+        run: >
+          dotnet pack src/SemanticDb.EF.SqlServer --no-build --configuration Release --output ./artifacts
+          -p:Version=${{ steps.version.outputs.VERSION }}
+          -p:RepositoryCommit=${{ github.sha }}
+          -p:PackageReleaseNotes="https://github.com/DTONeill/SemanticDb.NET/blob/main/CHANGELOG.md"
 
       - name: Push to NuGet
         run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: ./artifacts/*.nupkg
