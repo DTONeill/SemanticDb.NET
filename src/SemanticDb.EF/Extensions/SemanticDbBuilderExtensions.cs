@@ -8,6 +8,7 @@ using SemanticDb.Core.Outbox;
 using SemanticDb.Core.Services;
 using SemanticDb.EF.Interceptors;
 using SemanticDb.EF.Search;
+using SemanticDb.EF.Services;
 using SemanticDb.EF.Stores;
 
 namespace SemanticDb.EF.Extensions;
@@ -36,6 +37,7 @@ public static class SemanticDbBuilderExtensions
         builder.Services.AddScoped<IRagIndexStateStore, EfRagIndexStateStore>();
         builder.Services.AddScoped<IVectorSearch, InMemoryVectorSearch>();
         builder.Services.AddScoped<ISemanticDbService, SemanticDbService>();
+        builder.Services.AddScoped<ISemanticDbIndexer, EfSemanticDbIndexer>();
 
         builder.ProviderKey = "EF";
         return builder;

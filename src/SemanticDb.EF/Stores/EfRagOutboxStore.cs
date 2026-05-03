@@ -119,12 +119,11 @@ public class EfRagOutboxStore : IRagOutboxStore
     /// <inheritdoc />
     public async Task EnqueueReindexAsync(
         string chunkName,
-        string entityType,
         Type entityClrType,
         CancellationToken cancellationToken = default)
     {
         var entityMetadata = _dbContext.Model.FindEntityType(entityClrType)!;
-        var pkProperty = entityMetadata.FindPrimaryKey()!.Properties[0];
+        var pkProperties = entityMetadata.FindPrimaryKey()!.Properties;
 
         const int batchSize = 500;
         var skip = 0;
@@ -145,17 +144,13 @@ public class EfRagOutboxStore : IRagOutboxStore
             if (batch.Count == 0)
                 break;
 
-            var entries = batch.Select(entity => new RagOutboxEntry
+            foreach (var entity in batch)
             {
-                EntityType = entityType,
-                EntityId = entity.GetType().GetProperty(pkProperty.Name)!
-                    .GetValue(entity)?.ToString() ?? string.Empty,
-                ChunkName = chunkName,
-                Status = RagOutboxStatus.Pending
-            }).ToList();
+                var entityId = string.Join("|", pkProperties
+                    .Select(p => p.PropertyInfo!.GetValue(entity)?.ToString() ?? string.Empty));
 
-            await _dbContext.Set<RagOutboxEntry>().AddRangeAsync(entries, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+                await EnqueueEntityReindexAsync(chunkName, entityClrType.FullName!, entityId, cancellationToken);
+            }
 
             _dbContext.ChangeTracker.Clear();
 
@@ -164,5 +159,42 @@ public class EfRagOutboxStore : IRagOutboxStore
 
             skip += batchSize;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task EnqueueEntityReindexAsync(
+        string chunkName,
+        string entityType,
+        string entityId,
+        CancellationToken cancellationToken = default)
+    {
+        var existing = await _dbContext
+            .Set<RagOutboxEntry>()
+            .FirstOrDefaultAsync(
+                o => o.ClaimedBy == null && o.ChunkName == chunkName && o.EntityId == entityId,
+                cancellationToken);
+
+        if (existing is not null)
+        {
+            existing.Status = RagOutboxStatus.Pending;
+            existing.Error = null;
+            existing.RetryCount = 0;
+            existing.NextRetryAt = null;
+            existing.ProcessedAt = null;
+            existing.ClaimedBy = null;
+            existing.ClaimedAt = null;
+        }
+        else
+        {
+            _dbContext.Set<RagOutboxEntry>().Add(new RagOutboxEntry
+            {
+                EntityType = entityType,
+                EntityId = entityId,
+                ChunkName = chunkName,
+                Status = RagOutboxStatus.Pending
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

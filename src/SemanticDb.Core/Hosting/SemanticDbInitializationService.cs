@@ -72,7 +72,6 @@ internal sealed class SemanticDbInitializationService : IHostedService
 
             await ragOutboxStore.EnqueueReindexAsync(
                 registration.ChunkName,
-                registration.EntityType.FullName!,
                 registration.EntityType,
                 cancellationToken);
         }

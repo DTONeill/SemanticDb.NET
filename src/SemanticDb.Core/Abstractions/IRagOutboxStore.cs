@@ -40,8 +40,17 @@ public interface IRagOutboxStore
     /// </summary>
     Task EnqueueReindexAsync(
         string chunkName,
-        string entityType,
         Type entityClrType,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Enqueues a single entity for re-indexing. If an unclaimed outbox entry already exists for the
+    /// same chunk and entity it is reset to <c>Pending</c> rather than duplicated.
+    /// </summary>
+    Task EnqueueEntityReindexAsync(
+        string chunkName,
+        string entityType,
+        string entityId,
         CancellationToken cancellationToken = default);
 
     /// <summary>

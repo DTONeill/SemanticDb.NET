@@ -67,6 +67,8 @@ foreach (var result in results)
 - [Defining Searchable Entities](#defining-searchable-entities)
 - [Configuration](#configuration)
 - [Versioning and Re-indexing](#versioning-and-re-indexing)
+  - [Automatic re-indexing on version change](#automatic-re-indexing-on-version-change)
+  - [Manual re-indexing with ISemanticDbIndexer](#manual-re-indexing-with-isemanticdbindexer)
 - [Using Search Results with an LLM](#using-search-results-with-an-llm)
 - [Using an Alternative Provider](#using-an-alternative-provider-without-sql-server)
 - [Architecture](#architecture)
@@ -81,7 +83,7 @@ foreach (var result in results)
 - **Zero domain pollution** — your entity classes remain unchanged; indexing logic lives in dedicated classes
 - **Automatic change tracking** — EF Core interceptor detects `INSERT`, `UPDATE`, and `DELETE` and queues indexing work automatically
 - **Resilient async pipeline** — outbox pattern ensures embeddings are generated and stored reliably, even across restarts
-- **Automatic re-indexing** — increment `Version` on your searchable class to trigger a full re-index transparently at startup
+- **Automatic re-indexing** — increment `Version` on your searchable class to trigger a full re-index transparently at startup; use `ISemanticDbIndexer` to trigger reindexing manually for bulk operations or external changes
 - **Scoped search** — partition your index by tenant, patient, or any key using any type; no manual `.ToString()` required
 - **Prompt context on results** — `SemanticDbResult.PromptContext` is stored alongside the embedding, eliminating an extra DB round-trip before feeding results to an LLM
 - **Type-safe search API** — `SearchAsync<TSearchableEntity, TScopeKey>()` enforces the correct scope key type at compile time; passing the wrong type is a build error
@@ -182,13 +184,15 @@ public class AppDbContext : DbContext
 }
 ```
 
-Attach the interceptor:
+Attach the interceptor to have SemanticDb index changes automatically whenever `SaveChangesAsync` is called:
 
 ```csharp
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(connectionString)
            .AddSemanticDbInterceptors(sp));
 ```
+
+If you prefer to control indexing entirely yourself — for example, when your application writes primarily through raw SQL or bulk operations — you can skip `AddSemanticDbInterceptors` and use `ISemanticDbIndexer.RequestReindexAsync` directly instead. See [Manual re-indexing](#manual-re-indexing-with-isemanticdbindexer).
 
 ### 4. Add and run migrations
 
@@ -261,6 +265,8 @@ var results = await search.SearchAsync<CardsBySetSearchable>("Innistrad horror c
 
 ## Versioning and Re-indexing
 
+### Automatic re-indexing on version change
+
 When `ToSearchContent` changes, the embedded text is stale. Increment `Version` to trigger automatic re-indexing at the next application startup:
 
 ```csharp
@@ -270,6 +276,34 @@ public int Version => 2; // was 1
 At startup, SemanticDb compares the stored version in `RagIndexState` with the current version. If they differ, it enqueues a full re-index for that entity type via the outbox. The operation is safe under horizontal scaling — only one instance will perform the re-index per version change.
 
 Re-indexing is processed asynchronously by the background outbox processor and does not block application startup.
+
+### Manual re-indexing with `ISemanticDbIndexer`
+
+The EF Core interceptor only fires when changes go through `SaveChangesAsync`. If your application modifies entities via raw SQL, bulk operations, or an external system, those changes will not be indexed automatically. Use `ISemanticDbIndexer` to trigger indexing manually:
+
+```csharp
+// Inject ISemanticDbIndexer
+public class ProductService(AppDbContext db, ISemanticDbIndexer indexer)
+{
+    // Re-index a single entity — use when you know which entity changed
+    public async Task UpdateDescriptionAsync(int id, string newDescription)
+    {
+        await db.Products
+            .Where(p => p.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Description, newDescription));
+
+        await indexer.RequestReindexAsync<Product>(id);
+    }
+
+    // Re-index all entities of a type — use after bulk operations or data migrations
+    public async Task RebuildIndexAsync()
+    {
+        await indexer.RequestReindexAsync<Product>();
+    }
+}
+```
+
+Both overloads enqueue work via the outbox and return immediately — the actual embedding generation happens asynchronously in the background. If an unclaimed entry already exists for the same entity, it is reset to pending rather than duplicated.
 
 ---
 
@@ -396,8 +430,7 @@ await context.Prescriptions.ExecuteDeleteAsync(...);
 // Dapper, ADO.NET, or any bulk insert library on the same DB
 ```
 
-There is currently no manual indexing API for these cases. If your application relies on bulk operations, a full re-index can be triggered by incrementing Version on the relevant ISearchableEntity<T> and restarting the application -- but this is not suitable for runtime scenarios.
-A manual indexing API (IndexAsync, IndexRangeAsync) is tracked in #1.
+For these cases, use `ISemanticDbIndexer.RequestReindexAsync` to trigger indexing manually. See [Versioning and Re-indexing](#versioning-and-re-indexing).
 
 
 ---
