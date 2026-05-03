@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <NoWarn>$(NoWarn);SKEXP0001</NoWarn>
+    <NoWarn>$(NoWarn);SKEXP0001;CS1591</NoWarn>
     <UserSecretsId>e54a6eb4-0eab-46c5-8d76-9f3aad7b01e5</UserSecretsId>
     <RootNamespace>MtgWebApiSample.SqlServer</RootNamespace>
     <Authors>David O'Neill</Authors>
