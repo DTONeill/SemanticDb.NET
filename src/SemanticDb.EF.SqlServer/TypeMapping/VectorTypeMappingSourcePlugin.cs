@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace SemanticDb.EF.SqlServer.TypeMapping;
 
@@ -14,8 +13,7 @@ internal sealed class VectorTypeMappingSourcePlugin : IRelationalTypeMappingSour
 
     public RelationalTypeMapping? FindMapping(in RelationalTypeMappingInfo mappingInfo)
     {
-        if (mappingInfo.ClrType == typeof(float[]) ||
-            mappingInfo.StoreTypeName?.StartsWith("VECTOR", StringComparison.OrdinalIgnoreCase) == true)
+        if (mappingInfo.StoreTypeName?.StartsWith("VECTOR", StringComparison.OrdinalIgnoreCase) == true)
             return new VectorTypeMapping(_dimensions);
 
         return null;
