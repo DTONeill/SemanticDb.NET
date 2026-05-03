@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,11 +28,11 @@ internal sealed class SqlServerVectorFeatureConfigurator : IHostedService
         await using var scope = _scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<DbContext>();
 
-        var connection = dbContext.Database.GetDbConnection();
-        await dbContext.Database.OpenConnectionAsync(cancellationToken);
-
         try
         {
+            await using var connection = new SqlConnection(dbContext.Database.GetConnectionString());
+            await connection.OpenAsync(cancellationToken);
+
             await using var command = connection.CreateCommand();
             command.CommandText = """
                                   EXEC sp_configure 'show advanced options', 1;
