@@ -15,7 +15,7 @@ public class EfSearchableTableStore : ISearchableTableStore
 {
     private readonly DbContext _dbContext;
 
-    // Compiled delegate per entity type — built once, reused every batch cycle.
+    // Compiled delegates per entity type — built once, reused every batch cycle.
     private static readonly ConcurrentDictionary<Type, Func<EfSearchableTableStore, IReadOnlyList<string>,
             CancellationToken, Task<IReadOnlyDictionary<string, object?>>>>
         LoaderCache = new();
@@ -102,6 +102,22 @@ public class EfSearchableTableStore : ISearchableTableStore
             .Compile();
     }
 
+    private async Task<IReadOnlyList<string>> LoadAllSinglePkIdsAsync<TEntity, TPk>(
+        string pkName, CancellationToken cancellationToken)
+        where TEntity : class
+    {
+        var param = Expression.Parameter(typeof(TEntity), "e");
+        var selector = Expression.Lambda<Func<TEntity, TPk>>(
+            Expression.Property(param, pkName), param);
+
+        var values = await _dbContext.Set<TEntity>()
+            .AsNoTracking()
+            .Select(selector)
+            .ToListAsync(cancellationToken);
+
+        return values.Select(v => v?.ToString() ?? string.Empty).ToList().AsReadOnly();
+    }
+
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<string>> LoadAllEntityIdsAsync(
         Type entityType,
@@ -110,11 +126,23 @@ public class EfSearchableTableStore : ISearchableTableStore
         var entityMetadata = _dbContext.Model.FindEntityType(entityType)!;
         var primaryKey = entityMetadata.FindPrimaryKey()!;
 
+        if (primaryKey.Properties.Count == 1)
+        {
+            var pkProp = primaryKey.Properties[0];
+            return await (Task<IReadOnlyList<string>>)typeof(EfSearchableTableStore)
+                .GetMethod(nameof(LoadAllSinglePkIdsAsync), BindingFlags.NonPublic | BindingFlags.Instance)!
+                .MakeGenericMethod(entityType, pkProp.ClrType)
+                .Invoke(this, [pkProp.Name, cancellationToken])!;
+        }
+
+        // Composite PK: project to PK properties only is complex; use AsNoTracking
+        // so at least the full entity graph is not retained in the change tracker.
         var setMethod = typeof(DbContext)
             .GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!
             .MakeGenericMethod(entityType);
 
-        var queryable = (IQueryable<object>)setMethod.Invoke(_dbContext, null)!;
+        var queryable = ((IQueryable<object>)setMethod.Invoke(_dbContext, null)!)
+            .AsNoTracking();
 
         var entities = await queryable.ToListAsync(cancellationToken);
 
