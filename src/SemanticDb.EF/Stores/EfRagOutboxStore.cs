@@ -168,24 +168,25 @@ public class EfRagOutboxStore : IRagOutboxStore
         string entityId,
         CancellationToken cancellationToken = default)
     {
-        var existing = await _dbContext
+        // Atomic check-and-reset: the WHERE clause keeps ClaimedBy == null so a concurrent
+        // ClaimBatchAsync that set ClaimedBy between our read and write can never be silently undone.
+        var updated = await _dbContext
             .Set<RagOutboxEntry>()
-            .FirstOrDefaultAsync(
-                o => o.ClaimedBy == null && o.ChunkName == chunkName && o.EntityId == entityId,
+            .Where(o => o.ClaimedBy == null && o.ChunkName == chunkName && o.EntityId == entityId)
+            .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Status, RagOutboxStatus.Pending)
+                    .SetProperty(x => x.Error, (string?)null)
+                    .SetProperty(x => x.RetryCount, 0)
+                    .SetProperty(x => x.NextRetryAt, (DateTime?)null)
+                    .SetProperty(x => x.ProcessedAt, (DateTime?)null)
+                    .SetProperty(x => x.ClaimedBy, (string?)null)
+                    .SetProperty(x => x.ClaimedAt, (DateTime?)null),
                 cancellationToken);
 
-        if (existing is not null)
+        if (updated == 0)
         {
-            existing.Status = RagOutboxStatus.Pending;
-            existing.Error = null;
-            existing.RetryCount = 0;
-            existing.NextRetryAt = null;
-            existing.ProcessedAt = null;
-            existing.ClaimedBy = null;
-            existing.ClaimedAt = null;
-        }
-        else
-        {
+            // No unclaimed entry exists (either none at all, or the existing one is currently
+            // claimed). Insert a fresh Pending row so a reindex is guaranteed to run.
             _dbContext.Set<RagOutboxEntry>().Add(new RagOutboxEntry
             {
                 EntityType = entityType,
@@ -193,8 +194,7 @@ public class EfRagOutboxStore : IRagOutboxStore
                 ChunkName = chunkName,
                 Status = RagOutboxStatus.Pending
             });
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

@@ -22,12 +22,13 @@ internal sealed class EfSemanticDbIndexer : ISemanticDbIndexer
         where TEntity : class
     {
         Type entityType = entity.GetType();
+        var registrations = GetRegistrations(entityType);
         string entityId = string.Join("|", _dbContext.Model
             .FindEntityType(entityType)!
             .FindPrimaryKey()!.Properties
             .Select(p => p.PropertyInfo!.GetValue(entity)?.ToString() ?? string.Empty));
 
-        return EnqueueEntityAsync(entityType, entityId, cancellationToken);
+        return EnqueueEntityAsync(entityType, entityId, registrations, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -35,13 +36,14 @@ internal sealed class EfSemanticDbIndexer : ISemanticDbIndexer
         where TEntity : class
     {
         Type entityType = typeof(TEntity);
+        var registrations = GetRegistrations(entityType);
         var pkProperties = _dbContext.Model.FindEntityType(entityType)!.FindPrimaryKey()!.Properties;
 
         if (pkProperties.Count != 1)
             throw new InvalidOperationException(
                 $"Entity type '{entityType.Name}' has a composite primary key. Use RequestReindexAsync(entity) instead.");
 
-        return EnqueueEntityAsync(entityType, keyValue?.ToString() ?? string.Empty, cancellationToken);
+        return EnqueueEntityAsync(entityType, keyValue?.ToString() ?? string.Empty, registrations, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -53,9 +55,9 @@ internal sealed class EfSemanticDbIndexer : ISemanticDbIndexer
             await _outboxStore.EnqueueReindexAsync(registration.ChunkName, entityType, cancellationToken);
     }
 
-    private async Task EnqueueEntityAsync(Type entityType, string entityId, CancellationToken cancellationToken)
+    private async Task EnqueueEntityAsync(Type entityType, string entityId, List<SearchableEntityRegistration> registrations, CancellationToken cancellationToken)
     {
-        foreach (var registration in GetRegistrations(entityType))
+        foreach (var registration in registrations)
             await _outboxStore.EnqueueEntityReindexAsync(
                 registration.ChunkName,
                 entityType.FullName!,
