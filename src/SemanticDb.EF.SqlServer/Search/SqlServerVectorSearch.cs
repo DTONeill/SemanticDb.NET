@@ -76,7 +76,9 @@ internal sealed class SqlServerVectorSearch : IVectorSearch
 
         var results = new List<SemanticDbResult>();
 
-        var connection = _dbContext.Database.GetDbConnection();
+        await using var connection = new SqlConnection(_dbContext.Database.GetConnectionString());
+        await connection.OpenAsync(cancellationToken);
+
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
         command.Parameters.Add(new SqlParameter("@vector", vectorJson));
@@ -85,8 +87,6 @@ internal sealed class SqlServerVectorSearch : IVectorSearch
 
         if (scopeKey is not null)
             command.Parameters.Add(new SqlParameter("@scopeKey", scopeKey));
-
-        await _dbContext.Database.OpenConnectionAsync(cancellationToken);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
