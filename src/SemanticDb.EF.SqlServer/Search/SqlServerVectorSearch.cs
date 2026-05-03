@@ -40,21 +40,21 @@ internal sealed class SqlServerVectorSearch : IVectorSearch
 
         _sqlWithoutScope = $"""
                SELECT TOP (@limit) EntityId, ScopeKey,
-                   VECTOR_DISTANCE('cosine', Embedding, CAST(@vector AS VECTOR({dimensions}))) AS Score,
+                   1.0 - VECTOR_DISTANCE('cosine', Embedding, CAST(@vector AS VECTOR({dimensions}))) AS Score,
                    PromptContext
                FROM {qualifiedTableName}
                WHERE ChunkName = @chunkName
-               ORDER BY Score ASC
+               ORDER BY Score DESC
                """;
 
         _sqlWithScope = $"""
                SELECT TOP (@limit) EntityId, ScopeKey,
-                   VECTOR_DISTANCE('cosine', Embedding, CAST(@vector AS VECTOR({dimensions}))) AS Score,
+                   1.0 - VECTOR_DISTANCE('cosine', Embedding, CAST(@vector AS VECTOR({dimensions}))) AS Score,
                    PromptContext
                FROM {qualifiedTableName}
                WHERE ChunkName = @chunkName
                  AND ScopeKey = @scopeKey
-               ORDER BY Score ASC
+               ORDER BY Score DESC
                """;
     }
 
