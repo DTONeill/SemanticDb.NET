@@ -1,10 +1,12 @@
-﻿using SemanticDb.Core.Chunk;
+﻿using System.ComponentModel;
+using SemanticDb.Core.Chunk;
 
 namespace SemanticDb.Core.Abstractions;
 
 /// <summary>
 /// Defines the contract for performing vector similarity searches.
 /// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public interface IVectorSearch
 {
     /// <summary>
