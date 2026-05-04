@@ -68,19 +68,16 @@ internal sealed class RagInterceptor : SaveChangesInterceptor
 
         // Single batch query — ClaimedBy IS NULL means no worker currently owns the entry,
         // which covers Pending, PendingDelete, and Failed states.
-        var existing = await eventData.Context
+        var existingLookup = await eventData.Context
             .Set<RagOutboxEntry>()
             .Where(o => o.ClaimedBy == null &&
                         chunkNames.Contains(o.ChunkName) &&
                         entityIds.Contains(o.EntityId))
-            .ToListAsync(cancellationToken);
+            .ToDictionaryAsync(e => (e.ChunkName, e.EntityId), cancellationToken);
 
         foreach (var newEntry in newEntries)
         {
-            var match = existing.FirstOrDefault(e =>
-                e.ChunkName == newEntry.ChunkName && e.EntityId == newEntry.EntityId);
-
-            if (match is not null)
+            if (existingLookup.TryGetValue((newEntry.ChunkName, newEntry.EntityId), out var match))
             {
                 match.Status = newEntry.Status;
                 match.Error = null;

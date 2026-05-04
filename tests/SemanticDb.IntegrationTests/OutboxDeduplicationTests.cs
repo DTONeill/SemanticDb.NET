@@ -145,6 +145,31 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task LargeBatch_DeduplicatesProperly_WhenEntitiesSavedTwice()
+    {
+        await using var db = await CreateDbContextAsync();
+
+        var products = Enumerable.Range(100, 10)
+            .Select(i => new TestProduct { Id = i, Name = $"Spell{i}", Description = $"desc{i}" })
+            .ToList();
+        db.Products.AddRange(products);
+        await db.SaveChangesAsync();
+        await Processor.ProcessPendingAsync();
+
+        foreach (var p in products)
+            p.Description += " updated";
+        await db.SaveChangesAsync();
+
+        var entityIds = products.Select(p => p.Id.ToString()).ToList();
+        var outbox = await db.Set<RagOutboxEntry>()
+            .Where(e => entityIds.Contains(e.EntityId))
+            .ToListAsync();
+
+        Assert.Equal(10, outbox.Count);
+        Assert.All(outbox, e => Assert.Equal(RagOutboxStatus.Pending, e.Status));
+    }
+
+    [Fact]
     public async Task TwoEntities_EachDeduplicatedIndependently()
     {
         await using var db = await CreateDbContextAsync();
