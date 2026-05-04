@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+
 using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Models;
 using SemanticDb.Core.Outbox;
@@ -72,6 +74,7 @@ public class EfRagOutboxStore : IRagOutboxStore
                 cancellationToken);
         }
 
+
         // Other providers: best-effort (no skip-locked equivalent in EF Core bulk updates)
         return _dbContext
             .Set<RagOutboxEntry>()
@@ -133,10 +136,11 @@ public class EfRagOutboxStore : IRagOutboxStore
             .MakeGenericMethod(entityClrType);
 
         var queryable = (IQueryable<object>)setMethod.Invoke(_dbContext, null)!;
+        var orderedQueryable = ApplyOrderBy(queryable, entityClrType, pkProperties[0].Name);
 
         while (true)
         {
-            var batch = await queryable
+            var batch = await orderedQueryable
                 .Skip(skip)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
@@ -196,5 +200,19 @@ public class EfRagOutboxStore : IRagOutboxStore
             });
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private static IQueryable<object> ApplyOrderBy(IQueryable<object> queryable, Type entityClrType, string pkName)
+    {
+        var method = typeof(EfRagOutboxStore)
+            .GetMethod(nameof(ApplyOrderByCore), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(entityClrType);
+        return (IQueryable<object>)method.Invoke(null, [queryable, pkName])!;
+    }
+
+    private static IQueryable<object> ApplyOrderByCore<TEntity>(IQueryable<object> queryable, string pkName)
+        where TEntity : class
+    {
+        return queryable.Cast<TEntity>().OrderBy(e => Microsoft.EntityFrameworkCore.EF.Property<object>(e, pkName)).Cast<object>();
     }
 }
