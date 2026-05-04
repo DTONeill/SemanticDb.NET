@@ -118,46 +118,6 @@ public class EfSearchableTableStore : ISearchableTableStore
         return values.Select(v => v?.ToString() ?? string.Empty).ToList().AsReadOnly();
     }
 
-    /// <inheritdoc />
-    public async ValueTask<IReadOnlyList<string>> LoadAllEntityIdsAsync(
-        Type entityType,
-        CancellationToken cancellationToken = default)
-    {
-        var entityMetadata = _dbContext.Model.FindEntityType(entityType)!;
-        var primaryKey = entityMetadata.FindPrimaryKey()!;
-
-        if (primaryKey.Properties.Count == 1)
-        {
-            var pkProp = primaryKey.Properties[0];
-            return await (Task<IReadOnlyList<string>>)typeof(EfSearchableTableStore)
-                .GetMethod(nameof(LoadAllSinglePkIdsAsync), BindingFlags.NonPublic | BindingFlags.Instance)!
-                .MakeGenericMethod(entityType, pkProp.ClrType)
-                .Invoke(this, [pkProp.Name, cancellationToken])!;
-        }
-
-        // Composite PK: project to PK properties only is complex; use AsNoTracking
-        // so at least the full entity graph is not retained in the change tracker.
-        var setMethod = typeof(DbContext)
-            .GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!
-            .MakeGenericMethod(entityType);
-
-        var queryable = ((IQueryable<object>)setMethod.Invoke(_dbContext, null)!)
-            .AsNoTracking();
-
-        var entities = await queryable.ToListAsync(cancellationToken);
-
-        return entities
-            .Select(entity =>
-            {
-                var keyValues = primaryKey.Properties
-                    .Select(p => entity.GetType().GetProperty(p.Name)!.GetValue(entity)?.ToString() ?? string.Empty)
-                    .ToArray();
-                return string.Join("|", keyValues);
-            })
-            .ToList()
-            .AsReadOnly();
-    }
-
     private async Task<IReadOnlyDictionary<string, object?>> LoadBySinglePkAsync<TEntity>(
         string pkName, Type pkType, IReadOnlyList<string> entityIds, CancellationToken cancellationToken)
         where TEntity : class
