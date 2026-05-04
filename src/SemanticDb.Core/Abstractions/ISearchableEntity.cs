@@ -33,6 +33,10 @@ public interface ISearchableEntity<TScopeKey> : ISearchableEntity
 /// </typeparam>
 public interface ISearchableEntity<T, TScopeKey> : ISearchableEntity<TScopeKey> where T : class
 {
+    /// <summary>
+    /// Implements if your entity allow soft delete.
+    /// Returns true if the entity is soft deleted.
+    /// </summary>
     bool IsDeleted(T entity) => false;
 
     /// <summary>
