@@ -8,7 +8,9 @@ namespace SemanticDb.Core.Abstractions;
 /// Do not implement this interface directly — implement <see cref="ISearchableEntity{T,TScopeKey}"/> instead.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public interface ISearchableEntity { }
+public interface ISearchableEntity
+{
+}
 
 /// <summary>
 /// Infrastructure interface that carries the scope key type for the <see cref="ISemanticDbService.SearchAsync{TSearchableEntity,TScopeKey}"/> constraint.
@@ -16,7 +18,9 @@ public interface ISearchableEntity { }
 /// </summary>
 /// <typeparam name="TScopeKey">The type of the scope key (e.g. <see cref="int"/>, <see cref="Guid"/>).</typeparam>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public interface ISearchableEntity<TScopeKey> : ISearchableEntity { }
+public interface ISearchableEntity<TScopeKey> : ISearchableEntity
+{
+}
 
 /// <summary>
 /// Defines how an entity is indexed and contextualized for semantic search.
@@ -29,6 +33,8 @@ public interface ISearchableEntity<TScopeKey> : ISearchableEntity { }
 /// </typeparam>
 public interface ISearchableEntity<T, TScopeKey> : ISearchableEntity<TScopeKey> where T : class
 {
+    bool IsDeleted(T entity) => false;
+
     /// <summary>
     /// Returns the text content to embed and index for semantic search.
     /// </summary>

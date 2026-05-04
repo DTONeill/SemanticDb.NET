@@ -79,9 +79,28 @@ public class ScanAssemblyTests
         Assert.Null(reg!.GetScopeKey(new ScanEntity()));
     }
 
+    [Fact]
+    public void ScanAssembly_WiresIsDeleted_ReturnsFalseByDefault()
+    {
+        _registry.TryGetByChunkName(nameof(DefaultScopeSearchable), out var reg);
+        Assert.False(reg!.IsDeleted(new ScanEntity()));
+    }
+
+    [Fact]
+    public void ScanAssembly_WiresIsDeleted_WhenOverridden()
+    {
+        _registry.TryGetByChunkName(nameof(SoftDeletableSearchable), out var reg);
+        Assert.True(reg!.IsDeleted(new ScanEntity { IsDeleted = true }));
+        Assert.False(reg!.IsDeleted(new ScanEntity { IsDeleted = false }));
+    }
+
     // ── Test entities ────────────────────────────────────────────────────────
 
-    public sealed class ScanEntity { public int Id { get; init; } }
+    public sealed class ScanEntity
+    {
+        public int Id { get; init; }
+        public bool IsDeleted { get; init; }
+    }
 
     public sealed class StringScopedSearchable : ISearchableEntity<ScanEntity, string>
     {
@@ -100,6 +119,12 @@ public class ScanAssemblyTests
     public sealed class DefaultScopeSearchable : ISearchableEntity<ScanEntity, object>
     {
         public string ToSearchContent(ScanEntity e) => $"content-{e.Id}";
-        // GetScopeKey not overridden — uses the interface default (returns null)
+        // GetScopeKey and IsDeleted not overridden — use interface defaults
+    }
+
+    public sealed class SoftDeletableSearchable : ISearchableEntity<ScanEntity, object>
+    {
+        public string ToSearchContent(ScanEntity e) => $"content-{e.Id}";
+        public bool IsDeleted(ScanEntity e) => e.IsDeleted;
     }
 }

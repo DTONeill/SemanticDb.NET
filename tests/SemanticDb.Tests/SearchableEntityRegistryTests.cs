@@ -14,6 +14,7 @@ public class SearchableEntityRegistryTests
             ToSearchContent = _ => "content",
             ToPromptContext = _ => "context",
             GetScopeKey = _ => null,
+            IsDeleted = _ => false,
         };
 
     [Fact]

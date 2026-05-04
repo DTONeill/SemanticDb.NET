@@ -44,7 +44,7 @@ public class RagOutboxProcessorTests
     private RagOutboxProcessor CreateProcessor() =>
         new(_scopeFactory.Object, _options, NullLogger<RagOutboxProcessor>.Instance, _registry);
 
-    private void RegisterChunk(string chunkName, Func<object, object?>? getScopeKey = null) =>
+    private void RegisterChunk(string chunkName, Func<object, object?>? getScopeKey = null, Func<object, bool>? isDeleted = null) =>
         _registry.Register(new SearchableEntityRegistration
         {
             ChunkName = chunkName,
@@ -54,6 +54,7 @@ public class RagOutboxProcessorTests
             ToSearchContent = _ => "content",
             ToPromptContext = _ => "context",
             GetScopeKey = getScopeKey ?? (_ => null),
+            IsDeleted = isDeleted ?? (_ => false),
         });
 
     [Fact]
@@ -254,6 +255,39 @@ public class RagOutboxProcessorTests
 
         Assert.Single(upserted);
         Assert.Equal("99", upserted[0].ScopeKey);
+    }
+
+    [Fact]
+    public async Task ProcessPendingEntriesAsync_DeletesChunks_WhenLoadedEntityIsMarkedDeleted()
+    {
+        // Simulates the race: processor claimed a Processing entry, but by load time the entity is soft-deleted.
+        RegisterChunk("MyChunk", isDeleted: _ => true);
+        var entry = new RagOutboxEntry
+        {
+            EntityType = typeof(FakeEntity).FullName!,
+            EntityId = "entity-1",
+            ChunkName = "MyChunk",
+            Status = RagOutboxStatus.Processing,
+        };
+        _outboxStore.Setup(s => s.ListAsync(It.IsAny<RagSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([entry]);
+        _tableStore
+            .Setup(s => s.LoadEntitiesBatchAsync(typeof(FakeEntity), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, object?> { ["entity-1"] = new FakeEntity() });
+        _chunkStore.Setup(s => s.DeleteBatchAsync(It.IsAny<IReadOnlyList<ChunkEntryDeleteCriteria>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _outboxStore.Setup(s => s.DeleteBatchAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await CreateProcessor().ProcessPendingEntriesAsync(CancellationToken.None);
+
+        Assert.Equal(1, result);
+        _embeddingGenerator.Verify(
+            s => s.GenerateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<EmbeddingGenerationOptions?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _chunkStore.Verify(s => s.DeleteBatchAsync(
+            It.Is<IReadOnlyList<ChunkEntryDeleteCriteria>>(l => l.Count == 1 && l[0].EntityId == "entity-1"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private sealed class FakeEntity { }

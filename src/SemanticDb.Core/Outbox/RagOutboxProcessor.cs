@@ -62,12 +62,13 @@ internal sealed class RagOutboxProcessor : BackgroundService, ISemanticDbProcess
             return 0;
 
         var deleteEntries = toProcess.Where(e => e.Status == RagOutboxStatus.ProcessingDelete).ToList();
-        var (upsertWork, loadFailed) =
+        var (upsert, softDeletes, loadFailed) =
             await LoadEntitiesAsync(chunkedTableStore, toProcess, cancellationToken);
+        var allDeleteEntries = deleteEntries.Concat(softDeletes).ToList();
 
-        var embeddingResults = await GenerateEmbeddingsAsync(embeddingService, upsertWork, cancellationToken);
+        var embeddingResults = await GenerateEmbeddingsAsync(embeddingService, upsert, cancellationToken);
 
-        return await ApplyChangesAsync(ragOutboxStore, chunkStore, embeddingResults, deleteEntries, loadFailed,
+        return await ApplyChangesAsync(ragOutboxStore, chunkStore, embeddingResults, allDeleteEntries, loadFailed,
             cancellationToken);
     }
 
@@ -94,13 +95,14 @@ internal sealed class RagOutboxProcessor : BackgroundService, ISemanticDbProcess
 
     // ── Phase 1: Load entities ────────────────────────────────────────────────
 
-    private async Task<(List<UpsertWorkItem> Upserts, List<RagOutboxEntry> Failed)>
+    private async Task<(List<UpsertWorkItem> Upserts, List<RagOutboxEntry> SoftDeletes, List<RagOutboxEntry> Failed)>
         LoadEntitiesAsync(
             ISearchableTableStore searchableTableStore,
             List<RagOutboxEntry> entries,
             CancellationToken cancellationToken)
     {
         var upserts = new List<UpsertWorkItem>();
+        var softDeletes = new List<RagOutboxEntry>();
         var failed = new List<RagOutboxEntry>();
 
         foreach (var group in entries
@@ -151,6 +153,12 @@ internal sealed class RagOutboxProcessor : BackgroundService, ISemanticDbProcess
                     continue;
                 }
 
+                if (registration.IsDeleted(entity))
+                {
+                    softDeletes.Add(entry);
+                    continue;
+                }
+
                 upserts.Add(new UpsertWorkItem(
                     entry,
                     registration.ToSearchContent(entity),
@@ -159,7 +167,7 @@ internal sealed class RagOutboxProcessor : BackgroundService, ISemanticDbProcess
             }
         }
 
-        return (upserts, failed);
+        return (upserts, softDeletes, failed);
     }
 
     // ── Phase 2: Generate embeddings (batched) ───────────────────────────────

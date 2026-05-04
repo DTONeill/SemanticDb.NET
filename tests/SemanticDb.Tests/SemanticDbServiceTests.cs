@@ -32,6 +32,7 @@ public class SemanticDbServiceTests
             ToSearchContent = _ => "",
             ToPromptContext = _ => "",
             GetScopeKey = _ => null,
+            IsDeleted = _ => false,
         });
 
     private void SetupEmbedding(float[] floats)

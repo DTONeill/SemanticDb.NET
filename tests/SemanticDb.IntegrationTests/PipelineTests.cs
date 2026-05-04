@@ -116,5 +116,65 @@ public sealed class PipelineTests : IntegrationTestBase
         Assert.Empty(results);
     }
 
+    [Fact]
+    public async Task ModifySoftDelete_OverwritesOutboxEntryToPendingDelete()
+    {
+        await using var db = await CreateDbContextAsync();
+        var product = new TestProduct { Id = 21, Name = "Blizzard", Description = "An ice storm" };
+        db.Products.Add(product);
+        await db.SaveChangesAsync();
+        await Processor.ProcessPendingAsync();
+
+        product.Description = "A powerful ice storm";
+        await db.SaveChangesAsync(); // creates Pending entry
+
+        product.IsDeleted = true;
+        await db.SaveChangesAsync(); // should overwrite to PendingDelete, not add a second row
+
+        var outbox = await db.Set<RagOutboxEntry>().Where(e => e.EntityId == "21").ToListAsync();
+        Assert.Single(outbox);
+        Assert.Equal(RagOutboxStatus.PendingDelete, outbox[0].Status);
+    }
+
+    [Fact]
+    public async Task ModifySoftDelete_WhenProcessed_RemovesEntityFromSearch()
+    {
+        await using var db = await CreateDbContextAsync();
+        var product = new TestProduct { Id = 22, Name = "Shatter", Description = "A crystal spell" };
+        db.Products.Add(product);
+        await db.SaveChangesAsync();
+        await Processor.ProcessPendingAsync();
+
+        product.Description = "An updated crystal spell";
+        await db.SaveChangesAsync();
+
+        product.IsDeleted = true;
+        await db.SaveChangesAsync();
+
+        await Processor.ProcessPendingAsync();
+
+        var results = await SearchService.SearchAsync<ProductChunk>("crystal");
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task SoftDelete_ThenProcess_RemovesEntityFromSearch()
+    {
+        await using var db = await CreateDbContextAsync();
+        var product = new TestProduct { Id = 20, Name = "Fireball", Description = "A powerful fire spell" };
+        db.Products.Add(product);
+        await db.SaveChangesAsync();
+
+        await Processor.ProcessPendingAsync();
+
+        product.IsDeleted = true;
+        await db.SaveChangesAsync();
+
+        await Processor.ProcessPendingAsync();
+
+        var results = await SearchService.SearchAsync<ProductChunk>("fire");
+        Assert.Empty(results);
+    }
+
     private sealed class UnregisteredChunk : ISearchableEntity { }
 }

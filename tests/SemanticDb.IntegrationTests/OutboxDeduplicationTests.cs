@@ -105,6 +105,46 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task SoftDelete_OverwritesPendingToPendingDelete()
+    {
+        await using var db = await CreateDbContextAsync();
+        var product = new TestProduct { Id = 30, Name = "Freeze", Description = "An ice spell" };
+        db.Products.Add(product);
+        await db.SaveChangesAsync();
+        await Processor.ProcessPendingAsync();
+
+        product.Description = "An updated ice spell";
+        await db.SaveChangesAsync(); // creates Pending entry
+
+        product.IsDeleted = true;
+        await db.SaveChangesAsync(); // should overwrite Pending → PendingDelete
+
+        var outbox = await db.Set<RagOutboxEntry>().Where(e => e.EntityId == "30").ToListAsync();
+        Assert.Single(outbox);
+        Assert.Equal(RagOutboxStatus.PendingDelete, outbox[0].Status);
+    }
+
+    [Fact]
+    public async Task SoftDeleteThenRestore_OverwritesPendingDeleteToPending()
+    {
+        await using var db = await CreateDbContextAsync();
+        var product = new TestProduct { Id = 31, Name = "Thaw", Description = "A thaw spell" };
+        db.Products.Add(product);
+        await db.SaveChangesAsync();
+        await Processor.ProcessPendingAsync();
+
+        product.IsDeleted = true;
+        await db.SaveChangesAsync(); // PendingDelete
+
+        product.IsDeleted = false;
+        await db.SaveChangesAsync(); // should overwrite PendingDelete → Pending
+
+        var outbox = await db.Set<RagOutboxEntry>().Where(e => e.EntityId == "31").ToListAsync();
+        Assert.Single(outbox);
+        Assert.Equal(RagOutboxStatus.Pending, outbox[0].Status);
+    }
+
+    [Fact]
     public async Task TwoEntities_EachDeduplicatedIndependently()
     {
         await using var db = await CreateDbContextAsync();

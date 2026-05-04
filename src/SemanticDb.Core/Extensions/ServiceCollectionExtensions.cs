@@ -77,7 +77,8 @@ public static class ServiceCollectionExtensions
             .Where(t => t is { IsAbstract: false, IsInterface: false })
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == searchableType)
-                .Select(i => (ImplementationType: t, EntityType: i.GetGenericArguments()[0], ScopeKeyType: i.GetGenericArguments()[1])));
+                .Select(i => (ImplementationType: t, EntityType: i.GetGenericArguments()[0],
+                    ScopeKeyType: i.GetGenericArguments()[1])));
 
         foreach (var (implType, entityType, scopeKeyType) in implementations)
         {
@@ -95,6 +96,10 @@ public static class ServiceCollectionExtensions
             }
 
             var iface = typeof(ISearchableEntity<,>).MakeGenericType(entityType, scopeKeyType);
+
+            var isDeleted = iface.GetMethod(nameof(ISearchableEntity<object, bool>.IsDeleted))
+                            ?? throw new InvalidOperationException(
+                                $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToSearchContent)}.");
 
             var toSearchContent = iface.GetMethod(nameof(ISearchableEntity<object, object>.ToSearchContent))
                                   ?? throw new InvalidOperationException(
@@ -120,7 +125,8 @@ public static class ServiceCollectionExtensions
                 Version = (int)versionProp.GetValue(instance)!,
                 ToSearchContent = entity => (string)toSearchContent.Invoke(instance, [entity])!,
                 ToPromptContext = entity => (string)toPromptContext.Invoke(instance, [entity])!,
-                GetScopeKey = entity => getScopeKey.Invoke(instance, [entity])
+                GetScopeKey = entity => getScopeKey.Invoke(instance, [entity]),
+                IsDeleted = entity => (bool)isDeleted.Invoke(instance, [entity])!
             });
         }
     }

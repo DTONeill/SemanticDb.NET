@@ -41,4 +41,9 @@ public sealed class SearchableEntityRegistration
     /// Extracts the scope key from a given entity instance.
     /// </summary>
     public required Func<object, object?> GetScopeKey { get; init; }
+
+    /// <summary>
+    /// Determines whether a given entity instance is logically deleted.
+    /// </summary>
+    public required Func<object, bool> IsDeleted { get; init; }
 }

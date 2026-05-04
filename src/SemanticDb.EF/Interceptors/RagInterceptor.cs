@@ -43,18 +43,22 @@ internal sealed class RagInterceptor : SaveChangesInterceptor
             {
                 var entityType = entry.Entity.GetType();
                 var entityId = GetEntityId(entry);
-                var status = entry.State == EntityState.Deleted
-                    ? RagOutboxStatus.PendingDelete
-                    : RagOutboxStatus.Pending;
 
                 return _registry
                     .GetRegistrations(entityType)
-                    .Select(definition => new RagOutboxEntry
+                    .Select(definition =>
                     {
-                        EntityType = entityType.FullName!,
-                        EntityId = entityId,
-                        ChunkName = definition.ChunkName,
-                        Status = status
+                        RagOutboxStatus status =
+                            entry.State == EntityState.Deleted || definition.IsDeleted(entry.Entity)
+                                ? RagOutboxStatus.PendingDelete
+                                : RagOutboxStatus.Pending;
+                        return new RagOutboxEntry
+                        {
+                            EntityType = entityType.FullName!,
+                            EntityId = entityId,
+                            ChunkName = definition.ChunkName,
+                            Status = status
+                        };
                     });
             })
             .ToList();
