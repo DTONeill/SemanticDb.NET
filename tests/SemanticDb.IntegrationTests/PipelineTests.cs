@@ -11,7 +11,7 @@ public sealed class PipelineTests : IntegrationTestBase
     [Fact]
     public async Task Insert_ThenProcess_MakesEntitySearchable()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.Add(new TestProduct { Id = 1, Name = "Inferno", Description = "A fire spell" });
         await db.SaveChangesAsync();
 
@@ -25,7 +25,7 @@ public sealed class PipelineTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ThenProcess_RemovesEntityFromSearch()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 2, Name = "Tsunami", Description = "A water spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -44,7 +44,7 @@ public sealed class PipelineTests : IntegrationTestBase
     [Fact]
     public async Task ScopeKey_IsolatesResultsPerTenant()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.AddRange(
             new TestProduct { Id = 3, Name = "Blaze", Description = "A fire spell", TenantId = "tenant-A" },
             new TestProduct { Id = 4, Name = "Ember", Description = "A fire spell", TenantId = "tenant-B" });
@@ -78,7 +78,7 @@ public sealed class PipelineTests : IntegrationTestBase
     [Fact]
     public async Task ModifyThenDelete_OverwritesOutboxEntryToPendingDelete()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 10, Name = "Blizzard", Description = "An ice spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -98,7 +98,7 @@ public sealed class PipelineTests : IntegrationTestBase
     [Fact]
     public async Task ModifyThenDelete_WhenProcessed_RemovesEntityFromSearch()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 11, Name = "Frostbolt", Description = "A cold spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -119,7 +119,7 @@ public sealed class PipelineTests : IntegrationTestBase
     [Fact]
     public async Task ModifySoftDelete_OverwritesOutboxEntryToPendingDelete()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 21, Name = "Blizzard", Description = "An ice storm" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -139,7 +139,7 @@ public sealed class PipelineTests : IntegrationTestBase
     [Fact]
     public async Task ModifySoftDelete_WhenProcessed_RemovesEntityFromSearch()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 22, Name = "Shatter", Description = "A crystal spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -160,7 +160,7 @@ public sealed class PipelineTests : IntegrationTestBase
     [Fact]
     public async Task SoftDelete_ThenProcess_RemovesEntityFromSearch()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 20, Name = "Fireball", Description = "A powerful fire spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -176,5 +176,7 @@ public sealed class PipelineTests : IntegrationTestBase
         Assert.Empty(results);
     }
 
-    private sealed class UnregisteredChunk : ISearchableEntity { }
+    private sealed class UnregisteredChunk : ISearchableEntity
+    {
+    }
 }

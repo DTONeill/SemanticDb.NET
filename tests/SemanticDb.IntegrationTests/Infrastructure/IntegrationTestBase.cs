@@ -32,7 +32,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
         services.AddDbContext<TestDbContext>((sp, opt) =>
             opt.UseSqlite(_connection)
-               .AddSemanticDbInterceptors(sp));
+                .AddSemanticDbInterceptors(sp));
 
         _provider = services.BuildServiceProvider();
 
@@ -59,9 +59,8 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected ISemanticDbService SearchService =>
         Services.CreateScope().ServiceProvider.GetRequiredService<ISemanticDbService>();
 
-    protected async Task<TestDbContext> CreateDbContextAsync()
-    {
-        var scope = _provider.CreateAsyncScope();
-        return scope.ServiceProvider.GetRequiredService<TestDbContext>();
-    }
+    protected TestDbContext CreateDbContext() => _provider
+        .CreateAsyncScope()
+        .ServiceProvider
+        .GetRequiredService<TestDbContext>();
 }

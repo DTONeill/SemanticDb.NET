@@ -13,7 +13,7 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     [Fact]
     public async Task MultipleModifies_ProducesOnlyOneOutboxEntry()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 20, Name = "Fireball", Description = "A fire spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -33,7 +33,7 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     [Fact]
     public async Task DeleteThenReInsert_OverwritesPendingDeleteToPending()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 21, Name = "Meteor", Description = "A space spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -54,7 +54,7 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     [Fact]
     public async Task FailedEntry_IsReplacedByNewOperation()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 22, Name = "Thunder", Description = "A storm spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -79,7 +79,7 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     [Fact]
     public async Task ProcessingEntry_IsNotOverwritten_NewEntryCreatedAlongside()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 23, Name = "Earthquake", Description = "A ground spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -107,7 +107,7 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     [Fact]
     public async Task SoftDelete_OverwritesPendingToPendingDelete()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 30, Name = "Freeze", Description = "An ice spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -127,7 +127,7 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     [Fact]
     public async Task SoftDeleteThenRestore_OverwritesPendingDeleteToPending()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 31, Name = "Thaw", Description = "A thaw spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -147,7 +147,7 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     [Fact]
     public async Task LargeBatch_DeduplicatesProperly_WhenEntitiesSavedTwice()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
 
         var products = Enumerable.Range(100, 10)
             .Select(i => new TestProduct { Id = i, Name = $"Spell{i}", Description = $"desc{i}" })
@@ -172,7 +172,7 @@ public sealed class OutboxDeduplicationTests : IntegrationTestBase
     [Fact]
     public async Task TwoEntities_EachDeduplicatedIndependently()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var p1 = new TestProduct { Id = 24, Name = "Wind", Description = "A wind spell" };
         var p2 = new TestProduct { Id = 25, Name = "Rain", Description = "A rain spell" };
         db.Products.AddRange(p1, p2);

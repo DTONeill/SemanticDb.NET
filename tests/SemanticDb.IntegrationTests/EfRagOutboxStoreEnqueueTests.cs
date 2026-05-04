@@ -20,7 +20,7 @@ public sealed class EfRagOutboxStoreEnqueueTests : IntegrationTestBase
 
         await store.EnqueueEntityReindexAsync(ChunkName, EntityType, "200");
 
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var entries = await db.Set<RagOutboxEntry>().Where(e => e.EntityId == "200").ToListAsync();
         Assert.Single(entries);
         Assert.Equal(RagOutboxStatus.Pending, entries[0].Status);
@@ -53,7 +53,7 @@ public sealed class EfRagOutboxStoreEnqueueTests : IntegrationTestBase
             await store.EnqueueEntityReindexAsync(ChunkName, EntityType, "201");
         }
 
-        await using var db2 = await CreateDbContextAsync();
+        await using var db2 = CreateDbContext();
         var entries = await db2.Set<RagOutboxEntry>().Where(e => e.EntityId == "201").ToListAsync();
         Assert.Single(entries);
         var e = entries[0];
@@ -93,7 +93,7 @@ public sealed class EfRagOutboxStoreEnqueueTests : IntegrationTestBase
             await store.EnqueueEntityReindexAsync(ChunkName, EntityType, "202");
         }
 
-        await using var db2 = await CreateDbContextAsync();
+        await using var db2 = CreateDbContext();
         var entries = await db2.Set<RagOutboxEntry>().Where(e => e.EntityId == "202").ToListAsync();
         Assert.Equal(2, entries.Count);
 
@@ -121,7 +121,7 @@ public sealed class EfRagOutboxStoreEnqueueTests : IntegrationTestBase
             await store.EnqueueEntityReindexAsync(ChunkName, EntityType, "203");
         }
 
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var entries = await db.Set<RagOutboxEntry>().Where(e => e.EntityId == "203").ToListAsync();
         Assert.Single(entries);
         Assert.Equal(RagOutboxStatus.Pending, entries[0].Status);

@@ -15,7 +15,7 @@ public sealed class ReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindex_CreatesOutboxEntry()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 20, Name = "Fireball", Description = "A fire spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -39,7 +39,7 @@ public sealed class ReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindex_ThenProcess_UpdatesSearchIndex()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 21, Name = "Aqua", Description = "A water spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -64,7 +64,7 @@ public sealed class ReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindex_IsIdempotent_NosDuplicateOutboxEntry()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 22, Name = "Storm", Description = "A nature spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -84,7 +84,7 @@ public sealed class ReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindex_ResetsFailedEntry()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         var product = new TestProduct { Id = 23, Name = "Thunder", Description = "A fire spell" };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -113,7 +113,9 @@ public sealed class ReindexTests : IntegrationTestBase
             Indexer.RequestReindexAsync(unregistered));
     }
 
-    private sealed class UnregisteredEntity { }
+    private sealed class UnregisteredEntity
+    {
+    }
 }
 
 public sealed class ReindexByKeyTests : IntegrationTestBase
@@ -124,7 +126,7 @@ public sealed class ReindexByKeyTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindexByKey_CreatesOutboxEntry()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.Add(new TestProduct { Id = 40, Name = "Vortex", Description = "A wind spell" });
         await db.SaveChangesAsync();
         await Processor.ProcessPendingAsync();
@@ -142,7 +144,7 @@ public sealed class ReindexByKeyTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindexByKey_ThenProcess_UpdatesSearchIndex()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.Add(new TestProduct { Id = 41, Name = "Blaze", Description = "A water spell" });
         await db.SaveChangesAsync();
         await Processor.ProcessPendingAsync();
@@ -161,7 +163,7 @@ public sealed class ReindexByKeyTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindexByKey_IsIdempotent_NoDuplicateOutboxEntry()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.Add(new TestProduct { Id = 42, Name = "Gale", Description = "A wind spell" });
         await db.SaveChangesAsync();
         await Processor.ProcessPendingAsync();
@@ -183,7 +185,9 @@ public sealed class ReindexByKeyTests : IntegrationTestBase
             Indexer.RequestReindexAsync<UnregisteredEntity>(1));
     }
 
-    private sealed class UnregisteredEntity { }
+    private sealed class UnregisteredEntity
+    {
+    }
 }
 
 public sealed class BulkReindexTests : IntegrationTestBase
@@ -194,7 +198,7 @@ public sealed class BulkReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindexAll_CreatesOutboxEntryPerEntity()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.AddRange(
             new TestProduct { Id = 30, Name = "Alpha", Description = "First" },
             new TestProduct { Id = 31, Name = "Beta", Description = "Second" },
@@ -215,7 +219,7 @@ public sealed class BulkReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindexAll_EmptyTable_CreatesNoOutboxEntries()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
 
         await Indexer.RequestReindexAsync<TestProduct>();
 
@@ -226,7 +230,7 @@ public sealed class BulkReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindexAll_IsIdempotent_NoDuplicateOutboxEntries()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.Add(new TestProduct { Id = 33, Name = "Delta", Description = "Fourth" });
         await db.SaveChangesAsync();
         await Processor.ProcessPendingAsync();
@@ -245,7 +249,7 @@ public sealed class BulkReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindexAll_ThenProcess_IndexesAllEntities()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.AddRange(
             new TestProduct { Id = 34, Name = "Epsilon", Description = "A lightning spell" },
             new TestProduct { Id = 35, Name = "Zeta", Description = "A lightning spell" });
@@ -265,7 +269,7 @@ public sealed class BulkReindexTests : IntegrationTestBase
     [Fact]
     public async Task RequestReindexAll_ReenqueuesAlreadyProcessedEntities()
     {
-        await using var db = await CreateDbContextAsync();
+        await using var db = CreateDbContext();
         db.Products.Add(new TestProduct { Id = 36, Name = "Eta", Description = "A frost spell" });
         await db.SaveChangesAsync();
         await Processor.ProcessPendingAsync();
@@ -287,5 +291,7 @@ public sealed class BulkReindexTests : IntegrationTestBase
             Indexer.RequestReindexAsync<UnregisteredEntity>());
     }
 
-    private sealed class UnregisteredEntity { }
+    private sealed class UnregisteredEntity
+    {
+    }
 }
