@@ -36,7 +36,7 @@ public static class SemanticDbBuilderExtensions
         builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>());
         builder.Services.AddScoped<IRagIndexStateStore, EfRagIndexStateStore>();
         builder.Services.AddScoped<IVectorSearch, InMemoryVectorSearch>();
-        builder.Services.AddScoped<ISemanticDbService, SemanticDbService>();
+        builder.Services.AddScoped<ISemanticDbService, SemanticDbSearchService>();
         builder.Services.AddScoped<ISemanticDbIndexer, EfSemanticDbIndexer>();
 
         builder.ProviderKey = "EF";

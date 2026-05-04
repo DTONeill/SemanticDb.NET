@@ -7,20 +7,20 @@ using SemanticDb.Core.Services;
 
 namespace SemanticDb.Tests;
 
-public class SemanticDbServiceTests
+public class SemanticDbSearchServiceTests
 {
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddingGenerator = new();
     private readonly Mock<IVectorSearch> _vectorSearch = new();
     private readonly SemanticDbOptions _options = new() { DefaultSearchLimit = 25 };
     private readonly SearchableEntityRegistry _registry = new();
 
-    public SemanticDbServiceTests()
+    public SemanticDbSearchServiceTests()
     {
         RegisterChunk<FakeSearchableEntity>("FakeChunk");
     }
 
     private ISemanticDbService CreateService() =>
-        new SemanticDbService(_embeddingGenerator.Object, _vectorSearch.Object, _options, _registry);
+        new SemanticDbSearchService(_embeddingGenerator.Object, _vectorSearch.Object, _options, _registry);
 
     private void RegisterChunk<TImpl>(string chunkName) =>
         _registry.Register(new SearchableEntityRegistration
@@ -39,7 +39,8 @@ public class SemanticDbServiceTests
     {
         var embeddings = new GeneratedEmbeddings<Embedding<float>>([new Embedding<float>(floats)]);
         _embeddingGenerator
-            .Setup(e => e.GenerateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<EmbeddingGenerationOptions?>(), It.IsAny<CancellationToken>()))
+            .Setup(e => e.GenerateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(embeddings);
     }
 
@@ -53,7 +54,8 @@ public class SemanticDbServiceTests
 
         await CreateService().SearchAsync<FakeSearchableEntity>("query");
 
-        _vectorSearch.Verify(v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), null, 25, It.IsAny<CancellationToken>()), Times.Once);
+        _vectorSearch.Verify(
+            v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), null, 25, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -66,7 +68,8 @@ public class SemanticDbServiceTests
 
         await CreateService().SearchAsync<FakeSearchableEntity>("query", limit: 10);
 
-        _vectorSearch.Verify(v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), null, 10, It.IsAny<CancellationToken>()), Times.Once);
+        _vectorSearch.Verify(
+            v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), null, 10, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -74,12 +77,15 @@ public class SemanticDbServiceTests
     {
         SetupEmbedding([1f, 0f]);
         _vectorSearch
-            .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), "tenant-1", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), "tenant-1", It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         await CreateService().SearchAsync<FakeSearchableEntity, string>("query", "tenant-1");
 
-        _vectorSearch.Verify(v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), "tenant-1", It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        _vectorSearch.Verify(
+            v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), "tenant-1", It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -88,7 +94,8 @@ public class SemanticDbServiceTests
         var floats = new float[] { 0.5f, 0.3f, 0.9f };
         SetupEmbedding(floats);
         _vectorSearch
-            .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), null, It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         await CreateService().SearchAsync<FakeSearchableEntity>("my query");
@@ -109,7 +116,8 @@ public class SemanticDbServiceTests
             new() { EntityId = "2", Score = 0.80f, PromptContext = "ctx2" },
         };
         _vectorSearch
-            .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), null, It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         var results = await CreateService().SearchAsync<FakeSearchableEntity>("query");
@@ -124,12 +132,15 @@ public class SemanticDbServiceTests
     {
         SetupEmbedding([1f]);
         _vectorSearch
-            .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(v => v.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), null, It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         await CreateService().SearchAsync<FakeSearchableEntity>("query");
 
-        _vectorSearch.Verify(v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), null, It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        _vectorSearch.Verify(
+            v => v.SearchAsync("FakeChunk", It.IsAny<float[]>(), null, It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -138,12 +149,15 @@ public class SemanticDbServiceTests
         RegisterChunk<IntKeyEntity>("IntKeyChunk");
         SetupEmbedding([1f, 0f]);
         _vectorSearch
-            .Setup(v => v.SearchAsync("IntKeyChunk", It.IsAny<float[]>(), "42", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(v => v.SearchAsync("IntKeyChunk", It.IsAny<float[]>(), "42", It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         await CreateService().SearchAsync<IntKeyEntity, int>("query", 42);
 
-        _vectorSearch.Verify(v => v.SearchAsync("IntKeyChunk", It.IsAny<float[]>(), "42", It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        _vectorSearch.Verify(
+            v => v.SearchAsync("IntKeyChunk", It.IsAny<float[]>(), "42", It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -153,12 +167,15 @@ public class SemanticDbServiceTests
         var guid = Guid.Parse("12345678-1234-1234-1234-123456789012");
         SetupEmbedding([1f, 0f]);
         _vectorSearch
-            .Setup(v => v.SearchAsync("GuidKeyChunk", It.IsAny<float[]>(), guid.ToString(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(v => v.SearchAsync("GuidKeyChunk", It.IsAny<float[]>(), guid.ToString(), It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         await CreateService().SearchAsync<GuidKeyEntity, Guid>("query", guid);
 
-        _vectorSearch.Verify(v => v.SearchAsync("GuidKeyChunk", It.IsAny<float[]>(), guid.ToString(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        _vectorSearch.Verify(
+            v => v.SearchAsync("GuidKeyChunk", It.IsAny<float[]>(), guid.ToString(), It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -168,8 +185,19 @@ public class SemanticDbServiceTests
             CreateService().SearchAsync<UnregisteredSearchableEntity>("query"));
     }
 
-    private sealed class FakeSearchableEntity : ISearchableEntity<string> { }
-    private sealed class IntKeyEntity : ISearchableEntity<int> { }
-    private sealed class GuidKeyEntity : ISearchableEntity<Guid> { }
-    private sealed class UnregisteredSearchableEntity : ISearchableEntity { }
+    private sealed class FakeSearchableEntity : ISearchableEntity<string>
+    {
+    }
+
+    private sealed class IntKeyEntity : ISearchableEntity<int>
+    {
+    }
+
+    private sealed class GuidKeyEntity : ISearchableEntity<Guid>
+    {
+    }
+
+    private sealed class UnregisteredSearchableEntity : ISearchableEntity
+    {
+    }
 }

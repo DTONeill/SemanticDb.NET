@@ -10,14 +10,14 @@ namespace SemanticDb.Core.Services;
 /// Orchestrates semantic search by generating embeddings and delegating vector search
 /// to the configured <see cref="IVectorSearch"/> provider.
 /// </summary>
-internal sealed class SemanticDbService : ISemanticDbService
+internal sealed class SemanticDbSearchService : ISemanticDbService
 {
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly IVectorSearch _vectorSearch;
     private readonly SemanticDbOptions _options;
     private readonly SearchableEntityRegistry _registry;
 
-    public SemanticDbService(
+    public SemanticDbSearchService(
         [FromKeyedServices(SemanticDbBuilder.EmbeddingGeneratorKey)]
         IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
         IVectorSearch vectorSearch,
