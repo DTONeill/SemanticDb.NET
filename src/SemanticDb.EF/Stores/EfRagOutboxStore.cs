@@ -112,6 +112,22 @@ public class EfRagOutboxStore : IRagOutboxStore
     }
 
     /// <inheritdoc />
+    public Task ResetFailedEntriesAsync(TimeSpan resetPeriod, CancellationToken cancellationToken)
+    {
+        var threshold = DateTime.UtcNow - resetPeriod;
+        return _dbContext
+            .Set<RagOutboxEntry>()
+            .Where(e => e.Status == RagOutboxStatus.Failed && e.ProcessedAt < threshold)
+            .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Status, RagOutboxStatus.Pending)
+                    .SetProperty(x => x.RetryCount, 0)
+                    .SetProperty(x => x.Error, (string?)null)
+                    .SetProperty(x => x.NextRetryAt, (DateTime?)null)
+                    .SetProperty(x => x.ProcessedAt, (DateTime?)null),
+                cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<int> CountByStatusAsync(RagOutboxStatus status, CancellationToken cancellationToken = default)
     {
         return _dbContext

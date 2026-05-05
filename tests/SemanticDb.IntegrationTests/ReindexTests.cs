@@ -295,3 +295,78 @@ public sealed class BulkReindexTests : IntegrationTestBase
     {
     }
 }
+
+public sealed class ReindexAllTests : IntegrationTestBase
+{
+    private ISemanticDbIndexer Indexer =>
+        Services.CreateScope().ServiceProvider.GetRequiredService<ISemanticDbIndexer>();
+
+    [Fact]
+    public async Task RequestReindexAll_CreatesOutboxEntriesForEveryRegisteredType()
+    {
+        await using var db = CreateDbContext();
+        db.Products.AddRange(
+            new TestProduct { Id = 50, Name = "Alpha", Description = "A fire spell" },
+            new TestProduct { Id = 51, Name = "Beta",  Description = "A water spell" });
+        await db.SaveChangesAsync();
+        await Processor.ProcessPendingAsync();
+
+        await Indexer.RequestReindexAllAsync();
+
+        var outbox = await db.Set<RagOutboxEntry>()
+            .Where(e => e.EntityId == "50" || e.EntityId == "51")
+            .ToListAsync();
+
+        Assert.Equal(2, outbox.Count);
+        Assert.All(outbox, e => Assert.Equal(RagOutboxStatus.Pending, e.Status));
+    }
+
+    [Fact]
+    public async Task RequestReindexAll_EmptyTable_CreatesNoOutboxEntries()
+    {
+        await Indexer.RequestReindexAllAsync();
+
+        await using var db = CreateDbContext();
+        var outbox = await db.Set<RagOutboxEntry>().ToListAsync();
+        Assert.Empty(outbox);
+    }
+
+    [Fact]
+    public async Task RequestReindexAll_IsIdempotent_NoDuplicateOutboxEntries()
+    {
+        await using var db = CreateDbContext();
+        db.Products.Add(new TestProduct { Id = 52, Name = "Gamma", Description = "A nature spell" });
+        await db.SaveChangesAsync();
+        await Processor.ProcessPendingAsync();
+
+        await Indexer.RequestReindexAllAsync();
+        await Indexer.RequestReindexAllAsync();
+
+        var outbox = await db.Set<RagOutboxEntry>()
+            .Where(e => e.EntityId == "52")
+            .ToListAsync();
+
+        Assert.Single(outbox);
+        Assert.Equal(RagOutboxStatus.Pending, outbox[0].Status);
+    }
+
+    [Fact]
+    public async Task RequestReindexAll_ThenProcess_IndexesAllEntities()
+    {
+        await using var db = CreateDbContext();
+        db.Products.AddRange(
+            new TestProduct { Id = 53, Name = "Delta",   Description = "A fire spell" },
+            new TestProduct { Id = 54, Name = "Epsilon", Description = "A water spell" });
+        await db.SaveChangesAsync();
+        await Processor.ProcessPendingAsync();
+
+        await Indexer.RequestReindexAllAsync();
+        await Processor.ProcessPendingAsync();
+
+        var fireResults  = await SearchService.SearchAsync<ProductChunk>("fire");
+        var waterResults = await SearchService.SearchAsync<ProductChunk>("water");
+
+        Assert.Contains(fireResults,  r => r.EntityId == "53");
+        Assert.Contains(waterResults, r => r.EntityId == "54");
+    }
+}

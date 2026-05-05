@@ -15,6 +15,14 @@ public interface IRagOutboxStore
     public Task SetStaleEntriesToPending(TimeSpan staleTimeout, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Resets permanently-failed entries back to <c>Pending</c> with <c>RetryCount = 0</c> so they
+    /// receive another full sequence of retry attempts. Only entries whose <c>ProcessedAt</c>
+    /// timestamp is older than <paramref name="resetPeriod"/> are affected, avoiding immediate
+    /// re-failure of entries that just reached the retry limit.
+    /// </summary>
+    Task ResetFailedEntriesAsync(TimeSpan resetPeriod, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Returns outbox entries matching the given criteria.
     /// </summary>
     Task<List<RagOutboxEntry>> ListAsync(RagSearchCriteria criteria, CancellationToken cancellationToken);

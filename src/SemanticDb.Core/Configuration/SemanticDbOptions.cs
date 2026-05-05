@@ -33,4 +33,11 @@ public sealed class SemanticDbOptions
     /// </summary>
     public int OutboxBatchSize { get; set; } = 100;
 
+    /// <summary>
+    /// How long a permanently-failed entry must sit before it is automatically reset to
+    /// <c>Pending</c> with <c>RetryCount = 0</c> for another attempt. Set to <c>null</c> to
+    /// disable automatic recovery of failed entries. Default 1 hour.
+    /// </summary>
+    public TimeSpan? FailedEntryResetPeriod { get; set; } = TimeSpan.FromHours(1);
+
 }

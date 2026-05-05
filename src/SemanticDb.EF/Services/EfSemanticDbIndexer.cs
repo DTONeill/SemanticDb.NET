@@ -55,6 +55,13 @@ internal sealed class EfSemanticDbIndexer : ISemanticDbIndexer
             await _outboxStore.EnqueueReindexAsync(registration.ChunkName, entityType, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public async Task RequestReindexAllAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var registration in _registry.GetRegistrations())
+            await _outboxStore.EnqueueReindexAsync(registration.ChunkName, registration.EntityType, cancellationToken);
+    }
+
     private async Task EnqueueEntityAsync(Type entityType, string entityId, List<SearchableEntityRegistration> registrations, CancellationToken cancellationToken)
     {
         foreach (var registration in registrations)

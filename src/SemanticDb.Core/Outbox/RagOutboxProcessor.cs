@@ -81,6 +81,10 @@ internal sealed class RagOutboxProcessor : BackgroundService, ISemanticDbProcess
         // Reset stale claims from crashed instances
         await ragOutboxStore.SetStaleEntriesToPending(StaleClaimTimeout, cancellationToken);
 
+        // Re-enqueue permanently-failed entries that have been sitting long enough for another attempt
+        if (_options.FailedEntryResetPeriod.HasValue)
+            await ragOutboxStore.ResetFailedEntriesAsync(_options.FailedEntryResetPeriod.Value, cancellationToken);
+
         // Atomically claim a batch
         await ragOutboxStore.ClaimBatchAsync(_instanceId, _options.OutboxBatchSize, cancellationToken);
 

@@ -42,4 +42,12 @@ public interface ISemanticDbIndexer
     /// <param name="cancellationToken">A cancellation token.</param>
     Task RequestReindexAsync<TEntity>(CancellationToken cancellationToken = default)
         where TEntity : class;
+
+    /// <summary>
+    /// Enqueues all entities of every registered type for reindexing.
+    /// Equivalent to calling <see cref="RequestReindexAsync{TEntity}(CancellationToken)"/> for each
+    /// registered entity type in turn. Use this to restart the entire search index from scratch.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    Task RequestReindexAllAsync(CancellationToken cancellationToken = default);
 }
