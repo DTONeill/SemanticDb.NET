@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -12,6 +12,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticDb.IntegrationTests", "tests\SemanticDb.IntegrationTests\SemanticDb.IntegrationTests.csproj", "{A1B2C3D4-0001-0001-0001-000000000004}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticDb.Tests", "tests\SemanticDb.Tests\SemanticDb.Tests.csproj", "{A1B2C3D4-0001-0001-0001-000000000005}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{D627FA66-FD76-4286-AA5A-888B3F3D52FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECommerceApiSample", "samples\ECommerceApiSample\ECommerceApiSample.csproj", "{85758235-3870-4A49-87C7-18953BACD9EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,5 +43,12 @@ Global
 		{A1B2C3D4-0001-0001-0001-000000000005}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1B2C3D4-0001-0001-0001-000000000005}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-0001-0001-0001-000000000005}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85758235-3870-4A49-87C7-18953BACD9EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85758235-3870-4A49-87C7-18953BACD9EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85758235-3870-4A49-87C7-18953BACD9EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85758235-3870-4A49-87C7-18953BACD9EE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{85758235-3870-4A49-87C7-18953BACD9EE} = {D627FA66-FD76-4286-AA5A-888B3F3D52FC}
 	EndGlobalSection
 EndGlobal

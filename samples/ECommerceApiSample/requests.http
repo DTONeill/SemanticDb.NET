@@ -1,0 +1,136 @@
+@baseUrl = http://localhost:5001
+
+### List all products
+GET {{baseUrl}}/products
+Accept: application/json
+
+###
+
+### Get a single product
+GET {{baseUrl}}/products/1
+Accept: application/json
+
+###
+
+### Create a product
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+  "name": "Ergonomic Mouse",
+  "description": "Vertical ergonomic mouse with 6 programmable buttons and 2.4 GHz wireless receiver.",
+  "price": 49.99,
+  "categoryId": 1
+}
+
+###
+
+### Update a product
+PUT {{baseUrl}}/products/1
+Content-Type: application/json
+
+{
+  "price": 229.99
+}
+
+###
+
+### Soft-delete a product (archived product is removed from the search index)
+DELETE {{baseUrl}}/products/5
+Accept: application/json
+
+###
+
+### Search products — global (no category filter)
+GET {{baseUrl}}/products/search?q=noise cancelling headphones
+Accept: application/json
+
+###
+
+### Search products — scoped to Electronics (categoryId=1)
+GET {{baseUrl}}/products/search?q=mechanical keyboard&categoryId=1
+Accept: application/json
+
+###
+
+### Search products — scoped to Books (categoryId=2)
+GET {{baseUrl}}/products/search?q=software architecture and design patterns
+Accept: application/json
+
+###
+
+### Ask — RAG response using rich markdown context from ProductDetailChunk
+GET {{baseUrl}}/products/ask?q=what are the best budget kitchen items under $50
+Accept: application/json
+
+###
+
+### Ask — product recommendation
+GET {{baseUrl}}/products/ask?q=I want to start doing yoga at home, what do I need
+Accept: application/json
+
+###
+
+### List approved reviews for a product
+GET {{baseUrl}}/products/1/reviews
+Accept: application/json
+
+###
+
+### Submit a new review (starts as unapproved — not indexed yet)
+POST {{baseUrl}}/products/1/reviews
+Content-Type: application/json
+
+{
+  "authorName": "Test User",
+  "rating": 5,
+  "content": "Incredible build quality and the noise cancellation works perfectly on my morning commute."
+}
+
+###
+
+### Approve a review (chunk is written to the index)
+PUT {{baseUrl}}/products/1/reviews/4/approve
+Accept: application/json
+
+###
+
+### Unapprove a review (chunk is removed from the index)
+PUT {{baseUrl}}/products/1/reviews/3/unapprove
+Accept: application/json
+
+###
+
+### Search reviews for a product
+GET {{baseUrl}}/products/1/reviews/search?q=noise cancellation battery life
+Accept: application/json
+
+###
+
+### Reindex all products (bulk — useful after raw SQL updates or bulk imports)
+POST {{baseUrl}}/admin/reindex/products
+Accept: application/json
+
+###
+
+### Reindex a single product by ID
+POST {{baseUrl}}/admin/reindex/products/1
+Accept: application/json
+
+###
+
+### Reindex all reviews
+POST {{baseUrl}}/admin/reindex/reviews
+Accept: application/json
+
+###
+
+### Reindex a single review by ID
+POST {{baseUrl}}/admin/reindex/reviews/1
+Accept: application/json
+
+###
+
+### Restart full index — enqueues all entities of every registered type
+POST {{baseUrl}}/admin/reindex
+Accept: application/json

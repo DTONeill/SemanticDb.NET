@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);SKEXP0001;CS1591</NoWarn>
+    <UserSecretsId>a1b2c3d4-0000-4000-8000-000000000001</UserSecretsId>
+    <RootNamespace>ECommerceApiSample</RootNamespace>
+    <Authors>David O'Neill</Authors>
+    <Copyright>Copyright © David O'Neill 2026</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.26" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SemanticDb.EF\SemanticDb.EF.csproj" />
+  </ItemGroup>
+
+</Project>
