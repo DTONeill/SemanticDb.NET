@@ -20,6 +20,7 @@ artifacts/
 # OS
 .DS_Store
 Thumbs.db
+*.db
 
 # Secrets — copy appsettings.example.json and fill in real values locally
 samples/**/appsettings.json
