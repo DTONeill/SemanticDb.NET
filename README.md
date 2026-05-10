@@ -72,6 +72,7 @@ foreach (var result in results)
 - [Using Search Results with an LLM](#using-search-results-with-an-llm)
 - [Using an Alternative Provider](#using-an-alternative-provider-without-sql-server)
 - [Architecture](#architecture)
+- [Samples](#samples)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
@@ -257,9 +258,11 @@ var results = await search.SearchAsync<CardsBySetSearchable>("Innistrad horror c
 
 | Option | Default | Description |
 |---|---|---|
-| `MaxRetries` | `3` | Maximum retry attempts for a failed outbox entry |
-| `RetryBaseDelay` | `5s` | Base delay for exponential backoff between retries |
+| `MaxRetries` | `3` | Maximum retry attempts before an entry is permanently marked Failed |
+| `RetryBaseDelay` | `30s` | Base delay for exponential backoff between retries (doubles each attempt) |
 | `DefaultSearchLimit` | `25` | Default number of results returned by `SearchAsync` |
+| `OutboxBatchSize` | `100` | Number of outbox entries claimed and processed per cycle |
+| `FailedEntryResetPeriod` | `1h` | How long a permanently-failed entry sits before being automatically reset to Pending for another attempt. Set to `null` to disable automatic recovery. |
 
 ---
 
@@ -299,6 +302,12 @@ public class ProductService(AppDbContext db, ISemanticDbIndexer indexer)
     public async Task RebuildIndexAsync()
     {
         await indexer.RequestReindexAsync<Product>();
+    }
+
+    // Re-index every registered entity type — use to rebuild the entire search index from scratch
+    public async Task RebuildAllIndexesAsync()
+    {
+        await indexer.RequestReindexAllAsync();
     }
 }
 ```
@@ -432,6 +441,36 @@ await context.Prescriptions.ExecuteDeleteAsync(...);
 
 For these cases, use `ISemanticDbIndexer.RequestReindexAsync` to trigger indexing manually. See [Versioning and Re-indexing](#versioning-and-re-indexing).
 
+
+---
+
+## Samples
+
+Two runnable sample applications are included under [`samples/`](samples/). Both use SQLite and in-memory vector search so they require no external infrastructure beyond an OpenAI API key.
+
+### [ECommerceApiSample](samples/ECommerceApiSample)
+
+A multi-entity e-commerce API that demonstrates the full feature set of the library:
+
+| Feature | Where to look |
+|---|---|
+| Multiple `ISearchableEntity` for the same entity type | `ProductsByCategoryChunk` and `ProductDetailChunk` both target `Product` — independent indexes, each searched by its own type |
+| `ToPromptContext` different from `ToSearchContent` | `ProductDetailChunk` returns compact text for embedding and rich markdown for the LLM |
+| Scoped search | `ProductsByCategoryChunk` scopes by `CategoryId`; `ProductReviewsByProductChunk` scopes by `ProductId` |
+| Soft deletes | `Product.IsArchived` removes archived products from results; `!ProductReview.IsApproved` keeps unapproved reviews out of the index |
+| `ISemanticDbIndexer` | Admin endpoints in `IndexEndpoints.cs` expose reindex by entity, by key, by type, and full reindex via `RequestReindexAllAsync` |
+| FK relationships | `Category → Product → ProductReview` with restrict/cascade delete |
+
+```bash
+cd samples/ECommerceApiSample
+dotnet user-secrets set "OpenAI:ApiKey" "sk-..."
+dotnet run
+# Then open samples/ECommerceApiSample/requests.http in VS Code or Rider to try all endpoints
+```
+
+### [MtgWebApiSample](samples/MtgWebApiSample.SqlServer)
+
+A Magic: The Gathering card API targeting SQL Server 2025 native vector search. Shows the `UseSqlServer<TContext>()` path, scoped search by set code, and a SQL Server 2025 Docker setup.
 
 ---
 
