@@ -5,7 +5,7 @@ using SemanticDb.Core.Models;
 using SemanticDb.Core.Outbox;
 using SemanticDb.IntegrationTests.Infrastructure;
 
-namespace SemanticDb.IntegrationTests;
+namespace SemanticDb.IntegrationTests.Outbox;
 
 public sealed class FailedEntryResetTests : IntegrationTestBase
 {

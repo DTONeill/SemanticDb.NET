@@ -4,7 +4,7 @@ using MtgWebApiSample.Core.Models;
 using MtgWebApiSample.Tests.Infrastructure;
 using Xunit;
 
-namespace MtgWebApiSample.Tests;
+namespace MtgWebApiSample.Tests.Endpoints;
 
 public class CardEndpointsTests : IClassFixture<SampleApiFactory>, IAsyncLifetime
 {

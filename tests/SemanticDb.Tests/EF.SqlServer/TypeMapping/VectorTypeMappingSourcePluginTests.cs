@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using SemanticDb.EF.SqlServer.TypeMapping;
 
-namespace SemanticDb.Tests.TypeMapping;
+namespace SemanticDb.Tests.EF.SqlServer.TypeMapping;
 
 public class VectorTypeMappingSourcePluginTests
 {

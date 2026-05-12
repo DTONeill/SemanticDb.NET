@@ -7,7 +7,7 @@ using SemanticDb.Core.Configuration;
 using SemanticDb.Core.Search;
 using SemanticDb.EF.Search;
 
-namespace SemanticDb.Tests;
+namespace SemanticDb.Tests.Core.Search;
 
 public class SemanticSearcherTests
 {

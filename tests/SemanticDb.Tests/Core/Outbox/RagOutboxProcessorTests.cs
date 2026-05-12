@@ -9,7 +9,7 @@ using SemanticDb.Core.Configuration;
 using SemanticDb.Core.Models;
 using SemanticDb.Core.Outbox;
 
-namespace SemanticDb.Tests;
+namespace SemanticDb.Tests.Core.Outbox;
 
 public class RagOutboxProcessorTests
 {

@@ -2,7 +2,7 @@ using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Chunk;
 using SemanticDb.Core.Search;
 
-namespace SemanticDb.Tests;
+namespace SemanticDb.Tests.Core.Search;
 
 public class SemanticSearchQueryTests
 {

@@ -2,7 +2,7 @@ using SemanticDb.Core.Chunk;
 using SemanticDb.Core.Configuration;
 using SemanticDb.Core.Search;
 
-namespace SemanticDb.Tests;
+namespace SemanticDb.Tests.Core.Configuration;
 
 public class SearchStrategyRegistryTests
 {

@@ -3,7 +3,7 @@ using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Search;
 using SemanticDb.IntegrationTests.Infrastructure;
 
-namespace SemanticDb.IntegrationTests;
+namespace SemanticDb.IntegrationTests.Search;
 
 public sealed class SemanticSearcherTests : IntegrationTestBase
 {

@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using SemanticDb.EF.SqlServer.Hosting;
 
-namespace SemanticDb.Tests;
+namespace SemanticDb.Tests.EF.SqlServer.Hosting;
 
 public class SqlServerStartupServicesTests
 {

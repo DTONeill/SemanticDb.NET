@@ -1,6 +1,6 @@
 using SemanticDb.Core.Configuration;
 
-namespace SemanticDb.Tests;
+namespace SemanticDb.Tests.Core.Configuration;
 
 public class SearchableEntityRegistryTests
 {

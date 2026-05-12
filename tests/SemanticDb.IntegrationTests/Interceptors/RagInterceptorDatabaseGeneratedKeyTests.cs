@@ -3,7 +3,7 @@ using SemanticDb.Core.Models;
 using SemanticDb.Core.Outbox;
 using SemanticDb.IntegrationTests.Infrastructure;
 
-namespace SemanticDb.IntegrationTests;
+namespace SemanticDb.IntegrationTests.Interceptors;
 
 /// <summary>
 /// Verifies that the RagInterceptor correctly handles entities whose primary key is

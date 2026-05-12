@@ -7,7 +7,7 @@ using SemanticDb.Core.Configuration;
 using SemanticDb.EF.Extensions;
 using SemanticDb.EF.SqlServer.Search;
 
-namespace SemanticDb.Tests;
+namespace SemanticDb.Tests.EF.SqlServer.Search;
 
 public class SqlServerVectorSearchTests
 {

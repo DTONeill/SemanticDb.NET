@@ -3,7 +3,7 @@ using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Configuration;
 using SemanticDb.Core.Extensions;
 
-namespace SemanticDb.Tests;
+namespace SemanticDb.Tests.Core.Configuration;
 
 public class ScanAssemblyTests
 {
