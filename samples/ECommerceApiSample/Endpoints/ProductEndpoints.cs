@@ -1,9 +1,6 @@
 using ECommerceApiSample.Data;
 using ECommerceApiSample.Models;
 using ECommerceApiSample.Search;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using SemanticDb.Core.Abstractions;
@@ -99,9 +96,21 @@ public static class ProductEndpoints
                 return Results.NotFound();
             }
 
-            if (body.Name is not null) { product.Name = body.Name; }
-            if (body.Description is not null) { product.Description = body.Description; }
-            if (body.Price is not null) { product.Price = body.Price.Value; }
+            if (body.Name is not null)
+            {
+                product.Name = body.Name;
+            }
+
+            if (body.Description is not null)
+            {
+                product.Description = body.Description;
+            }
+
+            if (body.Price is not null)
+            {
+                product.Price = body.Price.Value;
+            }
+
             if (body.CategoryId is not null)
             {
                 var category = await db.Categories.FindAsync(body.CategoryId.Value);
@@ -136,13 +145,13 @@ public static class ProductEndpoints
         app.MapGet("/products/search", async (
             string q,
             int? categoryId,
-            ISemanticDbService semanticSearch,
+            ISemanticSearcher<ProductsByCategoryChunk> searcher,
             AppDbContext db) =>
         {
-            var results = categoryId is null
-                ? await semanticSearch.SearchAsync<ProductsByCategoryChunk>(query: q)
-                : await semanticSearch.SearchAsync<ProductsByCategoryChunk, string>(
-                    query: q, categoryId.Value.ToString());
+            var results = await searcher
+                .Query(q)
+                .WithScope(categoryId)
+                .ToListAsync();
 
             if (results.Count == 0)
             {
@@ -176,10 +185,12 @@ public static class ProductEndpoints
         // Uses ProductDetailChunk so ToPromptContext returns rich markdown context for the LLM.
         app.MapGet("/products/ask", async (
             string q,
-            ISemanticDbService semanticSearch,
+            ISemanticSearcher<ProductDetailChunk> searcher,
             IChatClient chatClient) =>
         {
-            var results = await semanticSearch.SearchAsync<ProductDetailChunk>(query: q);
+            var results = await searcher
+                .Query(q)
+                .ToListAsync();
 
             if (results.Count == 0)
             {

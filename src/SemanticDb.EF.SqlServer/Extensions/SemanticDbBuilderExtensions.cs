@@ -1,6 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Configuration;
 using SemanticDb.EF.Extensions;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +16,7 @@ public static class SemanticDbBuilderExtensions
 {
     /// <summary>
     /// Registers the SQL Server vector search provider for SemanticDb.
+    /// Includes all EF Core support — do not call <c>UseEfCore()</c> separately.
     /// </summary>
     public static SemanticDbBuilder UseSqlServer<TContext>(this SemanticDbBuilder builder,
         int vectorDimensions = 1536)
@@ -32,7 +32,8 @@ public static class SemanticDbBuilderExtensions
         builder.ProviderKey = "SqlServer";
         builder.Services.AddHostedService<SqlServerVectorValidationService>();
         builder.Services.AddHostedService<SqlServerVectorFeatureConfigurator>();
-        builder.Services.AddScoped<IVectorSearch, SqlServerVectorSearch>();
+        builder.Services.AddScoped<SqlServerVectorSearchStrategy>();
+        builder.StrategyRegistry.Register(typeof(ISqlServerVectorSearch), typeof(SqlServerVectorSearchStrategy));
 
         // Register the type mapping plugin so EF Core generates VECTOR(n) in migrations
         builder.Services.AddSingleton<IRelationalTypeMappingSourcePlugin>(

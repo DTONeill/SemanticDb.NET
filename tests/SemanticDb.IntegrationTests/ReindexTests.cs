@@ -54,7 +54,7 @@ public sealed class ReindexTests : IntegrationTestBase
         await Indexer.RequestReindexAsync(product);
         await Processor.ProcessPendingAsync();
 
-        var fireResults = await SearchService.SearchAsync<ProductChunk>("fire");
+        var fireResults = await Searcher.Query("fire").ToListAsync();
         var updated = fireResults.SingleOrDefault(r => r.EntityId == "21");
 
         Assert.NotNull(updated);
@@ -156,7 +156,7 @@ public sealed class ReindexByKeyTests : IntegrationTestBase
         await Indexer.RequestReindexAsync<TestProduct>(41);
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("fire");
+        var results = await Searcher.Query("fire").ToListAsync();
         Assert.Contains(results, r => r.EntityId == "41");
     }
 
@@ -259,7 +259,7 @@ public sealed class BulkReindexTests : IntegrationTestBase
         await Indexer.RequestReindexAsync<TestProduct>();
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("lightning");
+        var results = await Searcher.Query("lightning").ToListAsync();
         var ids = results.Select(r => r.EntityId).ToHashSet();
 
         Assert.Contains("34", ids);
@@ -363,8 +363,8 @@ public sealed class ReindexAllTests : IntegrationTestBase
         await Indexer.RequestReindexAllAsync();
         await Processor.ProcessPendingAsync();
 
-        var fireResults  = await SearchService.SearchAsync<ProductChunk>("fire");
-        var waterResults = await SearchService.SearchAsync<ProductChunk>("water");
+        var fireResults  = await Searcher.Query("fire").ToListAsync();
+        var waterResults = await Searcher.Query("water").ToListAsync();
 
         Assert.Contains(fireResults,  r => r.EntityId == "53");
         Assert.Contains(waterResults, r => r.EntityId == "54");

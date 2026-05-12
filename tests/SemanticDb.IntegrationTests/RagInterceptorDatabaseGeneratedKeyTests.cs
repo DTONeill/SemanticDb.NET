@@ -40,7 +40,7 @@ public sealed class RagInterceptorDatabaseGeneratedKeyTests : IntegrationTestBas
 
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("water");
+        var results = await Searcher.Query("water").ToListAsync();
         Assert.Single(results);
         Assert.True(int.TryParse(results[0].EntityId, out var id) && id > 0);
     }
@@ -81,8 +81,8 @@ public sealed class RagInterceptorDatabaseGeneratedKeyTests : IntegrationTestBas
 
         // The in-memory vector search returns all indexed chunks ranked by score.
         // Assert the top result for each query matches the right entity.
-        var fireResults  = await SearchService.SearchAsync<ProductChunk>("fire");
-        var waterResults = await SearchService.SearchAsync<ProductChunk>("water");
+        var fireResults  = await Searcher.Query("fire").ToListAsync();
+        var waterResults = await Searcher.Query("water").ToListAsync();
 
         Assert.Equal(blaze.Id.ToString(),  fireResults[0].EntityId);
         Assert.Equal(rapids.Id.ToString(), waterResults[0].EntityId);
@@ -148,7 +148,7 @@ public sealed class RagInterceptorDatabaseGeneratedKeyTests : IntegrationTestBas
         await db.SaveChangesAsync();
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("nature");
+        var results = await Searcher.Query("nature").ToListAsync();
         Assert.Empty(results);
     }
 
@@ -162,8 +162,8 @@ public sealed class RagInterceptorDatabaseGeneratedKeyTests : IntegrationTestBas
         await db.SaveChangesAsync();
         await Processor.ProcessPendingAsync();
 
-        var resultsA = await SearchService.SearchAsync<ProductChunk, string>("fire", "tenant-A");
-        var resultsB = await SearchService.SearchAsync<ProductChunk, string>("fire", "tenant-B");
+        var resultsA = await Searcher.Query("fire").WithScope("tenant-A").ToListAsync();
+        var resultsB = await Searcher.Query("fire").WithScope("tenant-B").ToListAsync();
 
         Assert.Single(resultsA);
         Assert.Single(resultsB);

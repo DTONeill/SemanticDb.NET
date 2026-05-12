@@ -5,7 +5,7 @@ using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Chunk;
 using SemanticDb.Core.Configuration;
 using SemanticDb.Core.Outbox;
-using SemanticDb.Core.Services;
+using SemanticDb.Core.Search;
 using SemanticDb.EF.Interceptors;
 using SemanticDb.EF.Search;
 using SemanticDb.EF.Services;
@@ -36,8 +36,9 @@ public static class SemanticDbBuilderExtensions
         builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>());
         builder.Services.AddScoped<IRagIndexStateStore, EfRagIndexStateStore>();
         builder.Services.AddScoped<IVectorSearch, InMemoryVectorSearch>();
-        builder.Services.AddScoped<ISemanticDbService, SemanticDbSearchService>();
         builder.Services.AddScoped<ISemanticDbIndexer, EfSemanticDbIndexer>();
+        builder.Services.AddScoped<InMemoryVectorSearchStrategy>();
+        builder.StrategyRegistry.Register(typeof(IInMemoryVectorSearch), typeof(InMemoryVectorSearchStrategy));
 
         builder.ProviderKey = "EF";
         return builder;

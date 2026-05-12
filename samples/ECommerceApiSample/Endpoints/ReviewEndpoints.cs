@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using SemanticDb.Core.Abstractions;
+using SemanticDb.Core.Search;
 
 namespace ECommerceApiSample.Endpoints;
 
@@ -113,7 +114,7 @@ public static class ReviewEndpoints
         app.MapGet("/products/{productId:int}/reviews/search", async (
             int productId,
             string q,
-            ISemanticDbService semanticSearch,
+            ISemanticSearcher<ProductReviewsByProductChunk> searcher,
             AppDbContext db) =>
         {
             var product = await db.Products.FindAsync(productId);
@@ -122,8 +123,7 @@ public static class ReviewEndpoints
                 return Results.NotFound();
             }
 
-            var results = await semanticSearch.SearchAsync<ProductReviewsByProductChunk, string>(
-                query: q, productId.ToString());
+            var results = await searcher.Query(q).WithScope(productId).ToListAsync();
 
             if (results.Count == 0)
             {

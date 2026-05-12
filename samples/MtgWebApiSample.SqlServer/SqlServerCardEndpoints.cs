@@ -3,25 +3,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using MtgWebApiSample.Core;
 using MtgWebApiSample.Core.Models;
 using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Search;
+using SemanticDb.EF.SqlServer.Extensions;
 
-namespace MtgWebApiSample.Core;
+namespace MtgWebApiSample.SqlServer;
 
-public record UpdateCardRequest(
-    string? ManaCost,
-    string? Type,
-    string? Rarity,
-    string? SetCode,
-    string? Text,
-    string? FlavorText);
-
-public static class CardEndpoints
+public static class SqlServerCardEndpoints
 {
-    public static IEndpointRouteBuilder MapCardEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapSqlServerCardEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/cards/search", async (
+        app.MapGet("/cards/search/sqlserver", async (
             string q,
             string? manaCost,
             ISemanticSearcher<CardsByManaCostSearchableEntity> searcher,
@@ -30,7 +24,7 @@ public static class CardEndpoints
             var results = await searcher
                 .Query(q)
                 .WithScope(manaCost)
-                .UseInMemorySearch()
+                .UseSqlServerVectorSearch()
                 .ToListAsync();
 
             if (results.Count == 0)
@@ -38,7 +32,8 @@ public static class CardEndpoints
 
             var entityIds = results.Select(r => r.EntityId).ToList();
 
-            var cards = await db.Set<Card>()
+            var cards = await db
+                .Set<Card>()
                 .Where(c => entityIds.Contains(c.Id))
                 .ToListAsync();
 
@@ -50,7 +45,7 @@ public static class CardEndpoints
             return Results.Ok(ordered);
         });
 
-        app.MapGet("/cards/ask", async (
+        app.MapGet("/cards/ask/sqlserver", async (
             string q,
             string? manaCost,
             ISemanticSearcher<CardsByManaCostSearchableEntity> searcher,
@@ -59,7 +54,7 @@ public static class CardEndpoints
             var results = await searcher
                 .Query(q)
                 .WithScope(manaCost)
-                .UseInMemorySearch()
+                .UseSqlServerVectorSearch()
                 .ToListAsync();
 
             if (results.Count == 0)
@@ -83,28 +78,6 @@ public static class CardEndpoints
                 answer = response.Text,
                 sources = results.Select(r => r.EntityId)
             });
-        });
-
-        app.MapPut("/cards/{name}", async (
-            string name,
-            UpdateCardRequest body,
-            DbContext db) =>
-        {
-            var card = await db
-                .Set<Card>()
-                .FirstOrDefaultAsync(c => c.Name == name);
-            if (card is null)
-                return Results.NotFound();
-
-            card.ManaCost = body.ManaCost;
-            card.Type = body.Type;
-            card.Rarity = body.Rarity;
-            card.SetCode = body.SetCode;
-            card.Text = body.Text;
-            card.FlavorText = body.FlavorText;
-
-            await db.SaveChangesAsync();
-            return Results.Ok(card);
         });
 
         return app;

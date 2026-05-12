@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Models;
 using SemanticDb.Core.Outbox;
@@ -17,7 +18,7 @@ public sealed class PipelineTests : IntegrationTestBase
 
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("fire");
+        var results = await Searcher.Query("fire").ToListAsync();
         Assert.Single(results);
         Assert.Equal("1", results[0].EntityId);
     }
@@ -37,7 +38,7 @@ public sealed class PipelineTests : IntegrationTestBase
 
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("water");
+        var results = await Searcher.Query("water").ToListAsync();
         Assert.Empty(results);
     }
 
@@ -52,27 +53,19 @@ public sealed class PipelineTests : IntegrationTestBase
 
         await Processor.ProcessPendingAsync();
 
-        var resultsA = await SearchService.SearchAsync<ProductChunk, string>("fire", "tenant-A");
+        var resultsA = await Searcher.Query("fire").WithScope("tenant-A").ToListAsync();
         Assert.Single(resultsA);
         Assert.Equal("3", resultsA[0].EntityId);
 
-        var resultsB = await SearchService.SearchAsync<ProductChunk, string>("fire", "tenant-B");
+        var resultsB = await Searcher.Query("fire").WithScope("tenant-B").ToListAsync();
         Assert.Single(resultsB);
         Assert.Equal("4", resultsB[0].EntityId);
     }
 
     [Fact]
-    public async Task SearchAsync_EmptyQuery_ThrowsArgumentException()
+    public void Query_EmptyText_ThrowsArgumentException()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            SearchService.SearchAsync<ProductChunk>(""));
-    }
-
-    [Fact]
-    public async Task SearchAsync_UnregisteredEntity_ThrowsInvalidOperationException()
-    {
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            SearchService.SearchAsync<UnregisteredChunk>("fire"));
+        Assert.Throws<ArgumentException>(() => Searcher.Query(""));
     }
 
     [Fact]
@@ -112,7 +105,7 @@ public sealed class PipelineTests : IntegrationTestBase
 
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("cold");
+        var results = await Searcher.Query("cold").ToListAsync();
         Assert.Empty(results);
     }
 
@@ -153,7 +146,7 @@ public sealed class PipelineTests : IntegrationTestBase
 
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("crystal");
+        var results = await Searcher.Query("crystal").ToListAsync();
         Assert.Empty(results);
     }
 
@@ -172,11 +165,7 @@ public sealed class PipelineTests : IntegrationTestBase
 
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("fire");
+        var results = await Searcher.Query("fire").ToListAsync();
         Assert.Empty(results);
-    }
-
-    private sealed class UnregisteredChunk : ISearchableEntity
-    {
     }
 }

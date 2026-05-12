@@ -79,7 +79,7 @@ public sealed class EfRagOutboxStoreReindexTests : IntegrationTestBase
 
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("fire");
+        var results = await Searcher.Query("fire").ToListAsync();
         Assert.Contains(results, r => r.EntityId == "410");
     }
 }

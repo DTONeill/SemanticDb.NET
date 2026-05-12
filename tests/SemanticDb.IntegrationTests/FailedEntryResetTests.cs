@@ -100,7 +100,7 @@ public sealed class FailedEntryResetTests : IntegrationTestBase
         await OutboxStore.ResetFailedEntriesAsync(TimeSpan.FromHours(1), CancellationToken.None);
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("fire");
+        var results = await Searcher.Query("fire").ToListAsync();
         Assert.Contains(results, r => r.EntityId == "62");
     }
 
@@ -165,7 +165,7 @@ public sealed class FailedEntryResetTests : IntegrationTestBase
         await Task.Delay(10); // ensure ProcessedAt is definitely past the 1 ms threshold
         await Processor.ProcessPendingAsync();
 
-        var results = await SearchService.SearchAsync<ProductChunk>("fire");
+        var results = await Searcher.Query("fire").ToListAsync();
         Assert.Contains(results, r => r.EntityId == "64");
 
         // Restore default so other tests are not affected

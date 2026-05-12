@@ -6,6 +6,7 @@ using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Extensions;
 using SemanticDb.EF.Extensions;
 using Xunit;
+using SemanticDb.Core.Search;
 
 namespace SemanticDb.IntegrationTests.Infrastructure;
 
@@ -56,8 +57,8 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected ISemanticDbProcessor Processor =>
         Services.GetRequiredService<ISemanticDbProcessor>();
 
-    protected ISemanticDbService SearchService =>
-        Services.CreateScope().ServiceProvider.GetRequiredService<ISemanticDbService>();
+    protected ISemanticSearcher<ProductChunk> Searcher =>
+        Services.CreateScope().ServiceProvider.GetRequiredService<ISemanticSearcher<ProductChunk>>();
 
     protected TestDbContext CreateDbContext() => _provider
         .CreateAsyncScope()

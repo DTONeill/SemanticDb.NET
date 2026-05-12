@@ -17,6 +17,13 @@ public sealed class SemanticDbBuilder
     public SearchableEntityRegistry Registry { get; }
 
     /// <summary>
+    /// The registry that maps search concept interfaces to their <see cref="SemanticDb.Core.Search.ISearchStrategy"/>
+    /// implementation types. Provider packages call <see cref="SearchStrategyRegistry.Register"/> here
+    /// to make their strategies available at query time.
+    /// </summary>
+    public SearchStrategyRegistry StrategyRegistry { get; }
+
+    /// <summary>
     /// A key identifying the active vector provider.
     /// Used to detect provider changes and trigger automatic re-indexing.
     /// </summary>
@@ -28,10 +35,12 @@ public sealed class SemanticDbBuilder
     internal SemanticDbBuilder(
         IServiceCollection services,
         SemanticDbOptions options,
-        SearchableEntityRegistry registry)
+        SearchableEntityRegistry registry,
+        SearchStrategyRegistry strategyRegistry)
     {
         Services = services;
         Options = options;
         Registry = registry;
+        StrategyRegistry = strategyRegistry;
     }
 }

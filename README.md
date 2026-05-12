@@ -12,7 +12,11 @@
 
 ## Why
 
-SemanticDb is for .NET developers who already have an EF Core application and want to add semantic/RAG search to their existing entities without building a separate ingestion pipeline. Unlike document-ingestion libraries, there is no file import step -- your existing SaveChanges calls automatically queue indexing work via an EF Core interceptor. You define how each entity is indexed in one class, register the library, and search is available with no changes to your domain models or your existing DbContext workflow.
+SemanticDb is for .NET developers who already have an EF Core application and want to add semantic/RAG search to their
+existing entities without building a separate ingestion pipeline. Unlike document-ingestion libraries, there is no file
+import step -- your existing SaveChanges calls automatically queue indexing work via an EF Core interceptor. You define
+how each entity is indexed in one class, register the library, and search is available with no changes to your domain
+models or your existing DbContext workflow.
 
 ```csharp
 // 1. Define how your entity is indexed
@@ -45,15 +49,17 @@ services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(connectionString)
            .AddSemanticDbInterceptors(sp));
 
-// 5. Search — results include PromptContext, ready to pass to an LLM
-var results = await semanticSearchService.SearchAsync<PrescriptionSearchable, int>(
-    query: "blood pressure medication",
-    scopeKey: patientId);
-
-foreach (var result in results)
+// 5. Search — inject ISemanticSearcher<T> and use the fluent API
+app.MapGet("/search", async (
+    ISemanticSearcher<PrescriptionSearchable> searcher,
+    string query, int patientId) =>
 {
-    Console.WriteLine($"[{result.Score:P0}] {result.PromptContext}");
-}
+    var results = await searcher.Query(query)
+        .WithScope(patientId)
+        .ToListAsync();
+
+    return results.Select(r => new { r.Score, r.PromptContext });
+});
 ```
 
 ---
@@ -67,8 +73,8 @@ foreach (var result in results)
 - [Defining Searchable Entities](#defining-searchable-entities)
 - [Configuration](#configuration)
 - [Versioning and Re-indexing](#versioning-and-re-indexing)
-  - [Automatic re-indexing on version change](#automatic-re-indexing-on-version-change)
-  - [Manual re-indexing with ISemanticDbIndexer](#manual-re-indexing-with-isemanticdbindexer)
+    - [Automatic re-indexing on version change](#automatic-re-indexing-on-version-change)
+    - [Manual re-indexing with ISemanticDbIndexer](#manual-re-indexing-with-isemanticdbindexer)
 - [Using Search Results with an LLM](#using-search-results-with-an-llm)
 - [Using an Alternative Provider](#using-an-alternative-provider-without-sql-server)
 - [Architecture](#architecture)
@@ -82,12 +88,18 @@ foreach (var result in results)
 ## Features
 
 - **Zero domain pollution** — your entity classes remain unchanged; indexing logic lives in dedicated classes
-- **Automatic change tracking** — EF Core interceptor detects `INSERT`, `UPDATE`, and `DELETE` and queues indexing work automatically
-- **Resilient async pipeline** — outbox pattern ensures embeddings are generated and stored reliably, even across restarts
-- **Automatic re-indexing** — increment `Version` on your searchable class to trigger a full re-index transparently at startup; use `ISemanticDbIndexer` to trigger reindexing manually for bulk operations or external changes
-- **Scoped search** — partition your index by tenant, patient, or any key using any type; no manual `.ToString()` required
-- **Prompt context on results** — `SemanticDbResult.PromptContext` is stored alongside the embedding, eliminating an extra DB round-trip before feeding results to an LLM
-- **Type-safe search API** — `SearchAsync<TSearchableEntity, TScopeKey>()` enforces the correct scope key type at compile time; passing the wrong type is a build error
+- **Automatic change tracking** — EF Core interceptor detects `INSERT`, `UPDATE`, and `DELETE` and queues indexing work
+  automatically
+- **Resilient async pipeline** — outbox pattern ensures embeddings are generated and stored reliably, even across
+  restarts
+- **Automatic re-indexing** — increment `Version` on your searchable class to trigger a full re-index transparently at
+  startup; use `ISemanticDbIndexer` to trigger reindexing manually for bulk operations or external changes
+- **Scoped search** — partition your index by tenant, patient, or any key using any type; no manual `.ToString()`
+  required
+- **Prompt context on results** — `SemanticDbResult.PromptContext` is stored alongside the embedding, eliminating an
+  extra DB round-trip before feeding results to an LLM
+- **Fluent search API** — `ISemanticSearcher<TSearchableEntity>` is injected per entity type; chain `.WithScope()`,
+  `.Limit()`, and strategy selection before calling `.ToListAsync()`
 - **Horizontal scaling safe** — optimistic concurrency prevents duplicate re-indexing across multiple instances
 - **Native SQL Server vector search** — uses `VECTOR_DISTANCE` for fast similarity search directly in SQL Server 2025
 - **Pluggable vector providers** — swap the vector store without changing your application code
@@ -96,11 +108,11 @@ foreach (var result in results)
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| `SemanticDb.Core` | Core abstractions, interfaces, and outbox processor |
-| `SemanticDb.EF` | EF Core provider: interceptor, outbox store, chunk store, in-memory vector search fallback |
-| `SemanticDb.EF.SqlServer` | SQL Server 2025 native vector search via `VECTOR_DISTANCE` |
+| Package                   | Description                                                                                |
+|---------------------------|--------------------------------------------------------------------------------------------|
+| `SemanticDb.Core`         | Core abstractions, interfaces, and outbox processor                                        |
+| `SemanticDb.EF`           | EF Core provider: interceptor, outbox store, chunk store, in-memory vector search fallback |
+| `SemanticDb.EF.SqlServer` | SQL Server 2025 native vector search via `VECTOR_DISTANCE`                                 |
 
 Install the packages you need:
 
@@ -118,8 +130,8 @@ dotnet add package SemanticDb.EF.SqlServer
 - Entity Framework Core 8 or later
 - Any `Microsoft.Extensions.AI`-compatible embedding provider (OpenAI, Azure OpenAI, Ollama, etc.)
 - **SQL Server 2025+** for native vector search (`SemanticDb.EF.SqlServer`)
-  - For development: `mcr.microsoft.com/mssql/server:2025-latest`
-  - For lower versions: use `UseEfCore<TContext>()` with in-memory cosine similarity fallback
+    - For development: `mcr.microsoft.com/mssql/server:2025-latest`
+    - For lower versions: use `UseEfCore<TContext>()` with in-memory cosine similarity fallback
 
 ---
 
@@ -133,7 +145,8 @@ dotnet add package SemanticDb.EF.SqlServer
 
 ### 2. Register SemanticDb with an embedding provider
 
-Pass the embedding provider directly via `UseEmbeddingsProvider` — any `IEmbeddingGenerator<string, Embedding<float>>` from `Microsoft.Extensions.AI` works:
+Pass the embedding provider directly via `UseEmbeddingsProvider` — any `IEmbeddingGenerator<string, Embedding<float>>`
+from `Microsoft.Extensions.AI` works:
 
 ```csharp
 // OpenAI
@@ -193,7 +206,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
            .AddSemanticDbInterceptors(sp));
 ```
 
-If you prefer to control indexing entirely yourself — for example, when your application writes primarily through raw SQL or bulk operations — you can skip `AddSemanticDbInterceptors` and use `ISemanticDbIndexer.RequestReindexAsync` directly instead. See [Manual re-indexing](#manual-re-indexing-with-isemanticdbindexer).
+If you prefer to control indexing entirely yourself — for example, when your application writes primarily through raw
+SQL or bulk operations — you can skip `AddSemanticDbInterceptors` and use `ISemanticDbIndexer.RequestReindexAsync`
+directly instead. See [Manual re-indexing](#manual-re-indexing-with-isemanticdbindexer).
 
 ### 4. Add and run migrations
 
@@ -230,39 +245,41 @@ public class CardsBySetSearchable : ISearchableEntity<Card, string>
 }
 ```
 
-You can register multiple `ISearchableEntity<T, TScopeKey>` implementations for the same entity type — each produces an independent index under its own name:
+You can register multiple `ISearchableEntity<T, TScopeKey>` implementations for the same entity type — each produces an
+independent index under its own name:
 
 ```csharp
 public class CardsByColorSearchable : ISearchableEntity<Card, string> { ... }
 public class CardsBySetSearchable   : ISearchableEntity<Card, string> { ... }
 
-// Search against a specific index by type
-var results = await search.SearchAsync<CardsByColorSearchable>("blue card draw spell");
-var results = await search.SearchAsync<CardsBySetSearchable>("Innistrad horror creature");
+// Each searcher is injected separately — each targets its own independent index
+var colorResults = await colorSearcher.Query("blue card draw spell").ToListAsync();
+var setResults   = await setSearcher.Query("Innistrad horror creature").ToListAsync();
 ```
 
 ### Interface reference
 
-| Member | Required | Description |
-|---|---|---|
-| `ToSearchContent(T)` | Yes | Text indexed and embedded for search |
-| `ToPromptContext(T)` | No | Text stored alongside the embedding and returned on results (defaults to `ToSearchContent`) |
-| `GetScopeKey(T)` | No | Partition key for scoped search; the return type is `TScopeKey?` and enforced at the `SearchAsync` call site (default: `null`) |
-| `Version` | No | Incremented to trigger re-indexing (default: `1`) |
+| Member               | Required | Description                                                                                                                    |
+|----------------------|----------|--------------------------------------------------------------------------------------------------------------------------------|
+| `ToSearchContent(T)` | Yes      | Text indexed and embedded for search                                                                                           |
+| `ToPromptContext(T)` | No       | Text stored alongside the embedding and returned on results (defaults to `ToSearchContent`)                                    |
+| `GetScopeKey(T)`     | No       | Partition key for scoped search; the return type is `TScopeKey?` and enforced at the `SearchAsync` call site (default: `null`) |
+| `Version`            | No       | Incremented to trigger re-indexing (default: `1`)                                                                              |
 
-> The chunk name is derived from the implementation class name: `CardsBySetSearchable` → `"CardsBySetSearchable"`. This is what is stored in the database.
+> The chunk name is derived from the implementation class name: `CardsBySetSearchable` → `"CardsBySetSearchable"`. This
+> is what is stored in the database.
 
 ---
 
 ## Configuration
 
-| Option | Default | Description |
-|---|---|---|
-| `MaxRetries` | `3` | Maximum retry attempts before an entry is permanently marked Failed |
-| `RetryBaseDelay` | `30s` | Base delay for exponential backoff between retries (doubles each attempt) |
-| `DefaultSearchLimit` | `25` | Default number of results returned by `SearchAsync` |
-| `OutboxBatchSize` | `100` | Number of outbox entries claimed and processed per cycle |
-| `FailedEntryResetPeriod` | `1h` | How long a permanently-failed entry sits before being automatically reset to Pending for another attempt. Set to `null` to disable automatic recovery. |
+| Option                   | Default | Description                                                                                                                                            |
+|--------------------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `MaxRetries`             | `3`     | Maximum retry attempts before an entry is permanently marked Failed                                                                                    |
+| `RetryBaseDelay`         | `30s`   | Base delay for exponential backoff between retries (doubles each attempt)                                                                              |
+| `DefaultSearchLimit`     | `25`    | Default number of results returned by `SearchAsync`                                                                                                    |
+| `OutboxBatchSize`        | `100`   | Number of outbox entries claimed and processed per cycle                                                                                               |
+| `FailedEntryResetPeriod` | `1h`    | How long a permanently-failed entry sits before being automatically reset to Pending for another attempt. Set to `null` to disable automatic recovery. |
 
 ---
 
@@ -270,19 +287,24 @@ var results = await search.SearchAsync<CardsBySetSearchable>("Innistrad horror c
 
 ### Automatic re-indexing on version change
 
-When `ToSearchContent` changes, the embedded text is stale. Increment `Version` to trigger automatic re-indexing at the next application startup:
+When `ToSearchContent` changes, the embedded text is stale. Increment `Version` to trigger automatic re-indexing at the
+next application startup:
 
 ```csharp
 public int Version => 2; // was 1
 ```
 
-At startup, SemanticDb compares the stored version in `RagIndexState` with the current version. If they differ, it enqueues a full re-index for that entity type via the outbox. The operation is safe under horizontal scaling — only one instance will perform the re-index per version change.
+At startup, SemanticDb compares the stored version in `RagIndexState` with the current version. If they differ, it
+enqueues a full re-index for that entity type via the outbox. The operation is safe under horizontal scaling — only one
+instance will perform the re-index per version change.
 
 Re-indexing is processed asynchronously by the background outbox processor and does not block application startup.
 
 ### Manual re-indexing with `ISemanticDbIndexer`
 
-The EF Core interceptor only fires when changes go through `SaveChangesAsync`. If your application modifies entities via raw SQL, bulk operations, or an external system, those changes will not be indexed automatically. Use `ISemanticDbIndexer` to trigger indexing manually:
+The EF Core interceptor only fires when changes go through `SaveChangesAsync`. If your application modifies entities via
+raw SQL, bulk operations, or an external system, those changes will not be indexed automatically. Use
+`ISemanticDbIndexer` to trigger indexing manually:
 
 ```csharp
 // Inject ISemanticDbIndexer
@@ -312,20 +334,27 @@ public class ProductService(AppDbContext db, ISemanticDbIndexer indexer)
 }
 ```
 
-Both overloads enqueue work via the outbox and return immediately — the actual embedding generation happens asynchronously in the background. If an unclaimed entry already exists for the same entity, it is reset to pending rather than duplicated.
+Both overloads enqueue work via the outbox and return immediately — the actual embedding generation happens
+asynchronously in the background. If an unclaimed entry already exists for the same entity, it is reset to pending
+rather than duplicated.
 
 ---
 
 ## Using Search Results with an LLM
 
-`SearchAsync` returns `SemanticDbResult` objects that each carry a `PromptContext` field — text pre-rendered at index time specifically for LLM consumption, requiring no extra database round-trip. You own the prompt and the call, which means full control over conversation history, streaming, tool use, and output format.
+`SearchAsync` returns `SemanticDbResult` objects that each carry a `PromptContext` field — text pre-rendered at index
+time specifically for LLM consumption, requiring no extra database round-trip. You own the prompt and the call, which
+means full control over conversation history, streaming, tool use, and output format.
 
 ### One-shot question answering
 
+Inject `ISemanticSearcher<TSearchableEntity>` where you need it and chain the fluent query:
+
 ```csharp
-var results = await semanticSearch.SearchAsync<PrescriptionSearchable, int>(
-    query: "blood pressure medication",
-    scopeKey: patientId);
+// Inject ISemanticSearcher<PrescriptionSearchable> via constructor or parameter
+var results = await searcher.Query("blood pressure medication")
+    .WithScope(patientId)
+    .ToListAsync();
 
 var context = string.Join("\n\n", results.Select(r => r.PromptContext));
 
@@ -357,9 +386,9 @@ while (true)
     var question = Console.ReadLine()!;
 
     // Re-retrieve for every turn — keeps context relevant as the conversation evolves
-    var results = await semanticSearch.SearchAsync<PrescriptionSearchable, int>(
-        query: question,
-        scopeKey: patientId);
+    var results = await searcher.Query(question)
+        .WithScope(patientId)
+        .ToListAsync();
 
     var context = string.Join("\n\n", results.Select(r => r.PromptContext));
 
@@ -377,17 +406,48 @@ while (true)
 
 ## Using an Alternative Provider (without SQL Server)
 
-If you are not using SQL Server 2025, or want to implement your own vector store, use `UseEfCore<TContext>()` instead of `UseSqlServer<TContext>()`. This registers an in-memory cosine similarity fallback suitable for development or low-volume scenarios:
+If you are not using SQL Server 2025, use `UseEfCore<TContext>()` instead of `UseSqlServer<TContext>()`. This registers
+an in-memory cosine similarity fallback suitable for development or low-volume scenarios:
 
 ```csharp
 builder.Services.AddSemanticDb(typeof(PrescriptionSearchable).Assembly)
     .UseEfCore<AppDbContext>();
 ```
 
-You can also implement `IVectorSearch` directly to plug in any vector database (PostgreSQL pgvector, Azure AI Search, etc.):
+When using SQL Server, you can choose the search strategy per query:
 
 ```csharp
-builder.Services.AddScoped<IVectorSearch, MyCustomVectorSearch>();
+// Default — in-memory cosine similarity (always available)
+var results = await searcher.Query("blood pressure medication").ToListAsync();
+
+// Explicit in-memory
+var results = await searcher.Query("blood pressure medication").UseInMemorySearch().ToListAsync();
+
+// SQL Server native VECTOR_DISTANCE (requires UseSqlServer())
+var results = await searcher.Query("blood pressure medication").UseSqlServerVectorSearch().ToListAsync();
+```
+
+To plug in a completely custom vector store (PostgreSQL pgvector, Azure AI Search, etc.), implement `ISearchStrategy`
+and register it against a concept interface of your choice:
+
+```csharp
+// 1. Define a concept marker interface (in your project or package)
+public interface IMyVectorSearch { }
+
+// 2. Implement ISearchStrategy
+public class MyVectorSearchStrategy : ISearchStrategy
+{
+    public async Task<IReadOnlyList<SemanticDbResult>> ExecuteAsync(SearchExecutionContext ctx, CancellationToken ct)
+    { ... }
+}
+
+// 3. Register at startup
+builder.Services.AddScoped<MyVectorSearchStrategy>();
+builder.StrategyRegistry.Register(typeof(IMyVectorSearch), typeof(MyVectorSearchStrategy));
+
+// 4. Optionally add a fluent extension method
+public static SemanticSearchQuery<T> UseMyVectorSearch<T>(this SemanticSearchQuery<T> query)
+    where T : ISearchableEntity => query.WithStrategy(typeof(IMyVectorSearch));
 ```
 
 ---
@@ -409,27 +469,29 @@ Your Application
                 ├── Upsert RagChunks
                 └── Delete processed outbox entries
 
-ISemanticDbService
+ISemanticSearcher<TSearchableEntity>  (one per entity type, injected via DI)
        │
-       ├── Generate query embedding (IEmbeddingGenerator)
-       └── IVectorSearch
-               ├── InMemoryVectorSearch   (EF fallback, cosine similarity)
-               └── SqlServerVectorSearch  (VECTOR_DISTANCE, SQL Server 2025)
+       └── ISearchStrategy  (resolved from SearchStrategyRegistry at query time)
+               ├── InMemoryVectorSearchStrategy   (default — loads chunks, cosine similarity)
+               └── SqlServerVectorSearchStrategy  (VECTOR_DISTANCE, SQL Server 2025)
 ```
 
 **Tables created by the library:**
 
-| Table | Description |
-|---|---|
-| `RagOutbox` | Pending indexing and deletion operations |
-| `RagChunks` | Stored embeddings and metadata |
+| Table           | Description                                |
+|-----------------|--------------------------------------------|
+| `RagOutbox`     | Pending indexing and deletion operations   |
+| `RagChunks`     | Stored embeddings and metadata             |
 | `RagIndexState` | Tracks the indexed version per entity type |
 
 ---
 
 ## Limitations and Gotchas
+
 ### EF Core interceptor scope
-SemanticDb detects changes through an EF Core SaveInterceptor. This means only operations that go through SaveChangesAsync() on a tracked DbContext will trigger indexing. The following patterns will silently bypass the outbox:
+
+SemanticDb detects changes through an EF Core SaveInterceptor. This means only operations that go through
+SaveChangesAsync() on a tracked DbContext will trigger indexing. The following patterns will silently bypass the outbox:
 
  ```csharp
  // None of these will trigger indexing:
@@ -439,27 +501,28 @@ await context.Prescriptions.ExecuteDeleteAsync(...);
 // Dapper, ADO.NET, or any bulk insert library on the same DB
 ```
 
-For these cases, use `ISemanticDbIndexer.RequestReindexAsync` to trigger indexing manually. See [Versioning and Re-indexing](#versioning-and-re-indexing).
+For these cases, use `ISemanticDbIndexer.RequestReindexAsync` to trigger indexing manually.
+See [Versioning and Re-indexing](#versioning-and-re-indexing).
 
 
 ---
 
 ## Samples
 
-Two runnable sample applications are included under [`samples/`](samples/). Both use SQLite and in-memory vector search so they require no external infrastructure beyond an OpenAI API key.
+Two runnable sample applications are included under [`samples/`](samples/).
 
 ### [ECommerceApiSample](samples/ECommerceApiSample)
 
 A multi-entity e-commerce API that demonstrates the full feature set of the library:
 
-| Feature | Where to look |
-|---|---|
-| Multiple `ISearchableEntity` for the same entity type | `ProductsByCategoryChunk` and `ProductDetailChunk` both target `Product` — independent indexes, each searched by its own type |
-| `ToPromptContext` different from `ToSearchContent` | `ProductDetailChunk` returns compact text for embedding and rich markdown for the LLM |
-| Scoped search | `ProductsByCategoryChunk` scopes by `CategoryId`; `ProductReviewsByProductChunk` scopes by `ProductId` |
-| Soft deletes | `Product.IsArchived` removes archived products from results; `!ProductReview.IsApproved` keeps unapproved reviews out of the index |
-| `ISemanticDbIndexer` | Admin endpoints in `IndexEndpoints.cs` expose reindex by entity, by key, by type, and full reindex via `RequestReindexAllAsync` |
-| FK relationships | `Category → Product → ProductReview` with restrict/cascade delete |
+| Feature                                               | Where to look                                                                                                                      |
+|-------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| Multiple `ISearchableEntity` for the same entity type | `ProductsByCategoryChunk` and `ProductDetailChunk` both target `Product` — independent indexes, each searched by its own type      |
+| `ToPromptContext` different from `ToSearchContent`    | `ProductDetailChunk` returns compact text for embedding and rich markdown for the LLM                                              |
+| Scoped search                                         | `ProductsByCategoryChunk` scopes by `CategoryId`; `ProductReviewsByProductChunk` scopes by `ProductId`                             |
+| Soft deletes                                          | `Product.IsArchived` removes archived products from results; `!ProductReview.IsApproved` keeps unapproved reviews out of the index |
+| `ISemanticDbIndexer`                                  | Admin endpoints in `IndexEndpoints.cs` expose reindex by entity, by key, by type, and full reindex via `RequestReindexAllAsync`    |
+| FK relationships                                      | `Category → Product → ProductReview` with restrict/cascade delete                                                                  |
 
 ```bash
 cd samples/ECommerceApiSample
@@ -470,7 +533,8 @@ dotnet run
 
 ### [MtgWebApiSample](samples/MtgWebApiSample.SqlServer)
 
-A Magic: The Gathering card API targeting SQL Server 2025 native vector search. Shows the `UseSqlServer<TContext>()` path, scoped search by set code, and a SQL Server 2025 Docker setup.
+A Magic: The Gathering card API targeting SQL Server 2025 native vector search. Shows the `UseSqlServer<TContext>()`
+path, scoped search by set code, and a SQL Server 2025 Docker setup.
 
 ---
 

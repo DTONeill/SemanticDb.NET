@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using OpenAI;
 using MtgWebApiSample.Core;
 using MtgWebApiSample.Core.Models;
+using MtgWebApiSample.SqlServer;
 using MtgWebApiSample.SqlServer.Data;
 using SemanticDb.Core.Abstractions;
 using SemanticDb.EF.Extensions;
@@ -40,6 +41,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.MapCardEndpoints();
+app.MapSqlServerCardEndpoints();
 
 if (app.Environment.IsEnvironment("Test"))
 {

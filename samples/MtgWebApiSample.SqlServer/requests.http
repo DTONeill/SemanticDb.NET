@@ -1,0 +1,68 @@
+### ── In-memory cosine similarity ──────────────────────────────────────────
+
+### Search cards (in-memory)
+GET http://localhost:5000/cards/search?q=instant&manaCost={2}{U}
+Accept: application/json
+
+###
+
+### Search without scope (in-memory)
+GET http://localhost:5000/cards/search?q=destroy all creatures
+Accept: application/json
+
+###
+
+### Ask — scoped to a mana cost (in-memory)
+GET http://localhost:5000/cards/ask?q=which of these cards can counter a spell&manaCost={1}{U}
+Accept: application/json
+
+###
+
+### Ask — unscoped (in-memory)
+GET http://localhost:5000/cards/ask?q=what is the best card&manaCost={3}{U}
+Accept: application/json
+
+###
+
+
+### ── SQL Server native VECTOR_DISTANCE ────────────────────────────────────
+
+### Search cards (SQL Server)
+GET http://localhost:5000/cards/search/sqlserver?q=instant&manaCost={2}{U}
+Accept: application/json
+
+###
+
+### Search without scope (SQL Server)
+GET http://localhost:5000/cards/search/sqlserver?q=destroy all creatures
+Accept: application/json
+
+###
+
+### Ask — scoped to a mana cost (SQL Server)
+GET http://localhost:5000/cards/ask/sqlserver?q=which of these cards can counter a spell&manaCost={1}{U}
+Accept: application/json
+
+###
+
+### Ask — unscoped (SQL Server)
+GET http://localhost:5000/cards/ask/sqlserver?q=what is the best card&manaCost={3}{U}
+Accept: application/json
+
+###
+
+
+### ── Card management ───────────────────────────────────────────────────────
+
+### Update a card
+PUT http://localhost:5000/cards/Counterspell
+Content-Type: application/json
+
+{
+  "manaCost": "{U}{U}",
+  "type": "Instant",
+  "rarity": "Common",
+  "setCode": "MMQ",
+  "text": "Counter target spell.",
+  "flavorText": "The mage's gesture was subtle, the result absolute."
+}

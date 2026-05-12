@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SemanticDb.Core.Abstractions;
 using SemanticDb.Core.Configuration;
 using SemanticDb.Core.Hosting;
-using SemanticDb.Core.Services;
+using SemanticDb.Core.Search;
 
 namespace SemanticDb.Core.Extensions;
 
@@ -48,16 +48,18 @@ public static class ServiceCollectionExtensions
         Assembly[] assemblies)
     {
         var registry = new SearchableEntityRegistry();
+        var strategyRegistry = new SearchStrategyRegistry();
 
-        foreach (var assembly in assemblies)
-            ScanAssembly(assembly, registry);
+        foreach (Assembly assembly in assemblies)
+            ScanAssembly(assembly, registry, services);
 
         services.AddSingleton(options);
         services.AddSingleton(registry);
+        services.AddSingleton(strategyRegistry);
         services.AddHostedService<SemanticDbValidationService>();
         services.AddHostedService<SemanticDbInitializationService>();
 
-        var builder = new SemanticDbBuilder(services, options, registry);
+        var builder = new SemanticDbBuilder(services, options, registry, strategyRegistry);
         services.AddSingleton(builder);
 
         // Fallback: resolve the unkeyed IEmbeddingGenerator when UseEmbeddingsProvider is not called.
@@ -69,11 +71,12 @@ public static class ServiceCollectionExtensions
         return builder;
     }
 
-    private static void ScanAssembly(Assembly assembly, SearchableEntityRegistry registry)
+    private static void ScanAssembly(Assembly assembly, SearchableEntityRegistry registry, IServiceCollection services)
     {
-        var searchableType = typeof(ISearchableEntity<,>);
+        Type searchableType = typeof(ISearchableEntity<,>);
 
-        var implementations = assembly.GetTypes()
+        var implementations = assembly
+            .GetTypes()
             .Where(t => t is { IsAbstract: false, IsInterface: false })
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == searchableType)
@@ -95,27 +98,27 @@ public static class ServiceCollectionExtensions
                     $"Ensure it has a public parameterless constructor.", ex);
             }
 
-            var iface = typeof(ISearchableEntity<,>).MakeGenericType(entityType, scopeKeyType);
+            Type iface = typeof(ISearchableEntity<,>).MakeGenericType(entityType, scopeKeyType);
 
-            var isDeleted = iface.GetMethod(nameof(ISearchableEntity<object, bool>.IsDeleted))
-                            ?? throw new InvalidOperationException(
-                                $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToSearchContent)}.");
+            MethodInfo isDeleted = iface.GetMethod(nameof(ISearchableEntity<object, bool>.IsDeleted))
+                                   ?? throw new InvalidOperationException(
+                                       $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToSearchContent)}.");
 
-            var toSearchContent = iface.GetMethod(nameof(ISearchableEntity<object, object>.ToSearchContent))
-                                  ?? throw new InvalidOperationException(
-                                      $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToSearchContent)}.");
+            MethodInfo toSearchContent = iface.GetMethod(nameof(ISearchableEntity<object, object>.ToSearchContent))
+                                         ?? throw new InvalidOperationException(
+                                             $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToSearchContent)}.");
 
-            var toPromptContext = iface.GetMethod(nameof(ISearchableEntity<object, object>.ToPromptContext))
-                                  ?? throw new InvalidOperationException(
-                                      $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToPromptContext)}.");
+            MethodInfo toPromptContext = iface.GetMethod(nameof(ISearchableEntity<object, object>.ToPromptContext))
+                                         ?? throw new InvalidOperationException(
+                                             $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.ToPromptContext)}.");
 
-            var getScopeKey = iface.GetMethod(nameof(ISearchableEntity<object, object>.GetScopeKey))
-                              ?? throw new InvalidOperationException(
-                                  $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.GetScopeKey)}.");
+            MethodInfo getScopeKey = iface.GetMethod(nameof(ISearchableEntity<object, object>.GetScopeKey))
+                                     ?? throw new InvalidOperationException(
+                                         $"'{implType.FullName}' does not implement {nameof(ISearchableEntity<object, object>.GetScopeKey)}.");
 
-            var versionProp = iface.GetProperty(nameof(ISearchableEntity<object, object>.Version))
-                              ?? throw new InvalidOperationException(
-                                  $"'{implType.FullName}' does not expose the {nameof(ISearchableEntity<object, object>.Version)} property.");
+            PropertyInfo versionProp = iface.GetProperty(nameof(ISearchableEntity<object, object>.Version))
+                                       ?? throw new InvalidOperationException(
+                                           $"'{implType.FullName}' does not expose the {nameof(ISearchableEntity<object, object>.Version)} property.");
 
             registry.Register(new SearchableEntityRegistration
             {
@@ -128,6 +131,10 @@ public static class ServiceCollectionExtensions
                 GetScopeKey = entity => getScopeKey.Invoke(instance, [entity]),
                 IsDeleted = entity => (bool)isDeleted.Invoke(instance, [entity])!
             });
+
+            services.AddScoped(
+                typeof(ISemanticSearcher<>).MakeGenericType(implType),
+                typeof(SemanticSearcher<>).MakeGenericType(implType));
         }
     }
 }
